@@ -36,53 +36,65 @@ const SETUP_HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Drivesoid Setup</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: flex-start; padding: 24px 16px 48px; min-height: 100vh; }
-  .card { background: white; border-radius: 14px; padding: 28px 24px; max-width: 460px; width: 100%; box-shadow: 0 2px 20px rgba(0,0,0,0.09); }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-  h1 { font-size: 1.25rem; font-weight: 650; line-height: 1.3; }
-  #lang-btn { font-size: 0.78rem; padding: 3px 10px; border: 1px solid #ccc; border-radius: 20px; background: white; cursor: pointer; color: #555; white-space: nowrap; margin-left: 12px; flex-shrink: 0; }
-  #lang-btn:hover { border-color: #888; color: #222; }
-  .subtitle { color: #777; font-size: 0.83rem; margin-bottom: 24px; line-height: 1.5; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #070912; --surface: #0f121e; --surface-hi: #111522;
+    --text: #eef2ff; --muted: #949bb0; --faint: #626a82; --line: #242a3d;
+    --accent: #70e8ef; --primary: #806dff;
+    --success: #59d9aa; --danger: #f15f70;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 32px 16px 64px; }
+  .setup-card { background: var(--surface); border-radius: var(--radius); padding: 32px 28px; max-width: 480px; width: 100%; position: relative; box-shadow: 0 22px 60px rgba(0,0,0,.38); }
+  .setup-card::after { content: ''; position: absolute; top: 0; left: 32px; right: 32px; height: 2px; background: var(--accent); border-radius: 0 0 2px 2px; }
+  .setup-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { width: 32px; height: 32px; flex-shrink: 0; }
+  h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: .01em; }
+  .subtitle { color: var(--muted); font-size: 0.83rem; margin-bottom: 28px; line-height: 1.6; }
+  .lang-btn { font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--line); border-radius: 20px; background: transparent; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
+  .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .section-kicker { font-size: 0.7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin: 22px 0 12px; }
   .field { margin-bottom: 14px; }
-  label { display: block; font-size: 0.85rem; font-weight: 550; margin-bottom: 5px; color: #222; }
-  label .note { font-weight: 400; color: #aaa; }
-  input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.15s; -webkit-appearance: none; }
-  input:focus { outline: none; border-color: #666; }
+  label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  label .note { font-weight: 400; color: var(--faint); }
+  input { width: 100%; padding: 10px 13px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 0.93rem; color: var(--text); transition: border-color .15s; -webkit-appearance: none; }
+  input:focus { outline: none; border-color: var(--accent); }
   input[type=number] { -moz-appearance: textfield; }
-  .hint { font-size: 0.76rem; color: #aaa; margin-top: 5px; line-height: 1.4; }
-  .hint a { color: #0066cc; text-decoration: none; }
+  input::placeholder { color: var(--faint); }
+  .hint { font-size: 0.74rem; color: var(--faint); margin-top: 6px; line-height: 1.5; }
+  .hint a { color: var(--accent); text-decoration: none; }
   .hint a:hover { text-decoration: underline; }
-  .divider { border: none; border-top: 1px solid #eee; margin: 18px 0; }
-  .adv-toggle { font-size: 0.8rem; color: #888; cursor: pointer; display: flex; align-items: center; gap: 4px; margin-bottom: 14px; user-select: none; }
-  .adv-toggle::before { content: '▶'; font-size: 0.6rem; transition: transform 0.2s; }
-  .adv-toggle.open::before { transform: rotate(90deg); }
+  .adv-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; border-top: 1px solid var(--line); padding: 12px 0 10px; color: var(--muted); font-size: 0.82rem; cursor: pointer; margin-top: 6px; }
+  .adv-btn:hover { color: var(--text); }
+  .adv-arrow { transition: transform .2s; font-style: normal; }
+  .adv-btn.open .adv-arrow { transform: rotate(180deg); }
   .adv-fields { display: none; }
   .adv-fields.open { display: block; }
-  button[type=submit] { width: 100%; padding: 12px; background: #111; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 550; cursor: pointer; margin-top: 6px; transition: background 0.15s; }
-  button[type=submit]:hover { background: #333; }
-  button[type=submit]:disabled { background: #bbb; cursor: default; }
-  #success { display: none; text-align: center; padding: 12px 0 4px; }
-  #success .check { font-size: 2.2rem; margin-bottom: 10px; }
-  #success h2 { font-size: 1.05rem; margin-bottom: 8px; }
-  #success p { color: #555; font-size: 0.85rem; line-height: 1.6; }
-  #success code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
-  #errmsg { display: none; color: #c00; font-size: 0.83rem; margin-top: 10px; }
-  @media (min-width: 500px) {
-    .card { padding: 36px 32px; }
-    h1 { font-size: 1.35rem; }
-  }
+  .primary-btn { width: 100%; padding: 12px; background: var(--accent); color: #071015; border: none; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 20px; box-shadow: 0 8px 0 rgba(34,92,101,.25); transition: opacity .15s; }
+  .primary-btn:hover { opacity: .9; }
+  .primary-btn:disabled { opacity: .45; cursor: default; }
+  #errmsg { display: none; color: var(--danger); font-size: 0.82rem; margin-top: 10px; }
+  #success { display: none; text-align: center; padding: 16px 0 8px; }
+  #success .check { font-size: 2.6rem; color: var(--success); margin-bottom: 14px; }
+  #success h2 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+  #success p { color: var(--muted); font-size: 0.83rem; line-height: 1.7; }
+  #success code { display: inline-block; margin-top: 6px; background: rgba(112,246,255,.08); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; color: var(--accent); letter-spacing: .02em; }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="header">
-    <h1 id="t-title">Drivesoid Setup</h1>
-    <button id="lang-btn" onclick="toggleLang()">中文</button>
+<div class="setup-card">
+  <div class="setup-head">
+    <div class="brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"><rect x="3" y="3" width="58" height="58" rx="17" fill="#0b0d15"/><rect x="3.75" y="3.75" width="56.5" height="56.5" rx="16.25" fill="none" stroke="#8b82b8" stroke-opacity=".24" stroke-width="1.5"/><path d="M25 13.5 15.5 19v10" fill="none" stroke="#70f6ff" stroke-width="3" stroke-linecap="square"/><path d="M15.5 35v10L25 50.5" fill="none" stroke="#728bff" stroke-width="3" stroke-linecap="square"/><path d="m39 13.5 9.5 5.5v10" fill="none" stroke="#b371ff" stroke-width="3" stroke-linecap="square"/><path d="M48.5 35v10L39 50.5" fill="none" stroke="#ef5cff" stroke-width="3" stroke-linecap="square"/><path d="M20.5 32 27 24.5h10L43.5 32 37 39.5H27Z" fill="#111522" stroke="#70f6ff" stroke-width="2"/><rect x="26.5" y="26.5" width="11" height="11" rx="2" transform="rotate(45 32 32)" fill="#7965ee"/><circle cx="32" cy="32" r="2.2" fill="#d8fcff"/><path d="M10.5 24.5h5M48.5 39.5h5" stroke="#70f6ff" stroke-width="1.6"/><path d="M23 8.5h8M41 55.5h-8" stroke="#ef5cff" stroke-width="1.4" opacity=".8"/></svg>
+      <h1 id="t-title">Drivesoid Setup</h1>
+    </div>
+    <button class="lang-btn" id="lang-btn" onclick="toggleLang()">中文</button>
   </div>
   <p class="subtitle" id="t-subtitle">One-time configuration. Fill in and submit — your AI agent will handle the rest.</p>
 
   <form id="form">
+    <div class="section-kicker" id="t-kicker-who">Who are you</div>
     <div class="field">
       <label><span id="t-ai-name">AI persona name</span> <span class="note" id="t-ai-name-note">(what should I call myself?)</span></label>
       <input name="ai_name" required id="i-ai-name" placeholder="e.g. Aria">
@@ -101,8 +113,7 @@ const SETUP_HTML = `<!DOCTYPE html>
       <div class="hint" id="t-tz-hint">8 = China/Singapore &nbsp;·&nbsp; -5 = New York &nbsp;·&nbsp; 0 = London</div>
     </div>
 
-    <hr class="divider">
-
+    <div class="section-kicker" id="t-kicker-classifier">Emotion Classifier</div>
     <div class="field">
       <label id="t-key">Classifier API key</label>
       <input name="api_key" type="password" required placeholder="sk-...">
@@ -110,10 +121,13 @@ const SETUP_HTML = `<!DOCTYPE html>
         Recommended: <a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek ↗</a> (~$0.1 / 1M tokens)</div>
     </div>
 
-    <div class="adv-toggle" id="adv-toggle" onclick="toggleAdv()"><span id="t-adv">Advanced</span></div>
+    <button type="button" class="adv-btn" id="adv-toggle" onclick="toggleAdv()">
+      <span id="t-adv">Advanced <small id="t-adv-sub">API URL &amp; model</small></span>
+      <i class="adv-arrow" id="adv-arrow">⌄</i>
+    </button>
     <div class="adv-fields" id="adv-fields">
-      <div class="field">
-        <label><span id="t-api-url">API base URL</span></label>
+      <div class="field" style="margin-top:12px;">
+        <label id="t-api-url">API base URL</label>
         <input name="api_url" value="https://api.deepseek.com">
       </div>
       <div class="field">
@@ -122,7 +136,7 @@ const SETUP_HTML = `<!DOCTYPE html>
       </div>
     </div>
 
-    <button type="submit" id="btn" id="t-btn">Complete Setup</button>
+    <button type="submit" class="primary-btn" id="btn">Complete Setup</button>
     <div id="errmsg"></div>
   </form>
 
@@ -137,6 +151,7 @@ const STRINGS = {
   en: {
     title: 'Drivesoid Setup',
     subtitle: 'One-time configuration. Fill in and submit — your AI agent will handle the rest.',
+    'kicker-who': 'Who are you', 'kicker-classifier': 'Emotion Classifier',
     'ai-name': 'AI persona name', 'ai-name-note': '(what should I call myself?)',
     'i-ai-name': 'e.g. Aria',
     'user-name': 'Your name', 'i-user-name': 'e.g. Alex',
@@ -145,7 +160,7 @@ const STRINGS = {
     'tz-hint': '8 = China/Singapore &nbsp;·&nbsp; -5 = New York &nbsp;·&nbsp; 0 = London',
     key: 'Classifier API key',
     'key-hint': 'Used to label your messages emotionally — a cheap fast model works best.<br>Recommended: <a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek ↗</a> (~$0.1 / 1M tokens)',
-    adv: 'Advanced', 'api-url': 'API base URL', model: 'Model',
+    adv: 'Advanced', 'adv-sub': 'API URL &amp; model', 'api-url': 'API base URL', model: 'Model',
     btn: 'Complete Setup', saving: 'Saving…',
     done: 'Setup complete', 'done-hint': 'Tell your AI agent to restart Drivesoid:<br><code>npm start</code>',
     'lang-btn': '中文', 'err-prefix': 'Error: ', 'net-err': 'Network error: ',
@@ -153,6 +168,7 @@ const STRINGS = {
   zh: {
     title: 'Drivesoid 初始化',
     subtitle: '一次性配置，填写并提交后，你的 AI 助手将完成剩余步骤。',
+    'kicker-who': '你们是谁', 'kicker-classifier': '情绪分类器',
     'ai-name': 'AI 人格名称', 'ai-name-note': '（我该叫什么名字？）',
     'i-ai-name': '例：Aria',
     'user-name': '你的名字', 'i-user-name': '例：Alex',
@@ -161,7 +177,7 @@ const STRINGS = {
     'tz-hint': '8 = 中国 / 新加坡 &nbsp;·&nbsp; -5 = 纽约 &nbsp;·&nbsp; 0 = 伦敦',
     key: '分类器 API 密钥',
     'key-hint': '用于对消息进行情感标注，便宜快速的模型即可。<br>推荐：<a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek ↗</a>（约 $0.1 / 100万 token）',
-    adv: '高级设置', 'api-url': 'API 地址', model: '模型',
+    adv: '高级设置', 'adv-sub': 'API 地址与模型', 'api-url': 'API 地址', model: '模型',
     btn: '完成配置', saving: '保存中…',
     done: '配置完成', 'done-hint': '请告诉你的 AI 助手重启 Drivesoid：<br><code>npm start</code>',
     'lang-btn': 'EN', 'err-prefix': '错误：', 'net-err': '网络错误：',
@@ -174,28 +190,29 @@ function applyLang(l) {
   const setText = (id, val) => { const el = document.getElementById('t-' + id); if (el) el.innerHTML = val; };
   const setPlaceholder = (id, val) => { const el = document.getElementById('i-' + id); if (el) el.placeholder = val; };
   setText('title', s.title); setText('subtitle', s.subtitle);
+  setText('kicker-who', s['kicker-who']); setText('kicker-classifier', s['kicker-classifier']);
   setText('ai-name', s['ai-name']); setText('ai-name-note', s['ai-name-note']);
   setPlaceholder('ai-name', s['i-ai-name']);
   setText('user-name', s['user-name']); setPlaceholder('user-name', s['i-user-name']);
   setText('relation', s.relation); setPlaceholder('relation', s['i-relation']);
   setText('tz', s.tz); setText('tz-note', s['tz-note']); setText('tz-hint', s['tz-hint']);
   setText('key', s.key); setText('key-hint', s['key-hint']);
-  setText('adv', s.adv); setText('api-url', s['api-url']); setText('model', s.model);
+  setText('adv', s.adv); setText('adv-sub', s['adv-sub']);
+  setText('api-url', s['api-url']); setText('model', s.model);
   const btn = document.getElementById('btn');
   if (btn && !btn.disabled) btn.textContent = s.btn;
   setText('done', s.done); setText('done-hint', s['done-hint']);
   document.getElementById('lang-btn').textContent = s['lang-btn'];
   document.documentElement.lang = l;
 }
-function toggleLang() {
-  lang = lang === 'en' ? 'zh' : 'en';
-  applyLang(lang);
-}
+function toggleLang() { lang = lang === 'en' ? 'zh' : 'en'; applyLang(lang); }
 function toggleAdv() {
-  const t = document.getElementById('adv-toggle');
-  const f = document.getElementById('adv-fields');
-  t.classList.toggle('open');
-  f.classList.toggle('open');
+  const toggle = document.getElementById('adv-toggle');
+  const fields = document.getElementById('adv-fields');
+  const arrow  = document.getElementById('adv-arrow');
+  toggle.classList.toggle('open');
+  fields.classList.toggle('open');
+  arrow.textContent = fields.classList.contains('open') ? '⌃' : '⌄';
 }
 
 document.getElementById('form').addEventListener('submit', async e => {
@@ -293,132 +310,166 @@ if (needsSetup()) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Drivesoid</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #f0f0f0; color: #111; min-height: 100vh; }
-  .topbar { background: #111; color: white; padding: 12px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
-  .topbar h1 { font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
-  .topbar .persona { font-size: 0.8rem; color: #aaa; flex: 1; }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
-  .status-dot.stale { background: #f87171; }
-  #lang-btn { font-size: 0.75rem; padding: 3px 10px; border: 1px solid #444; border-radius: 20px; background: transparent; color: #ccc; cursor: pointer; }
-  #lang-btn:hover { border-color: #888; color: white; }
-  .main { max-width: 860px; margin: 0 auto; padding: 20px 16px 48px; }
-  .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
-  .section-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
-  .section-header h2 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #555; }
-  .refresh-note { font-size: 0.75rem; color: #bbb; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #070912; --surface: #0f121e; --surface-hi: #111522;
+    --text: #eef2ff; --muted: #949bb0; --faint: #626a82; --line: #242a3d;
+    --accent: #70e8ef; --primary: #806dff;
+    --success: #59d9aa; --danger: #f15f70;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 0 20px; height: 52px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+  .topbar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: var(--accent); opacity: .55; }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand svg { width: 26px; height: 26px; flex-shrink: 0; }
+  .brand-name { font-size: 0.95rem; font-weight: 700; letter-spacing: .02em; }
+  .persona-info { font-size: 0.78rem; color: var(--muted); flex: 1; }
+  .status-pill { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .status-dot.stale { background: var(--danger); }
+  .lang-btn { font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--line); border-radius: 20px; background: transparent; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
+  .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  .card { background: var(--surface); border-radius: var(--radius); padding: 22px 20px; position: relative; }
+  .card::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: var(--accent); border-radius: 0 0 2px 2px; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+  .card-head h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .card-head span { font-size: 0.72rem; color: var(--faint); }
   .dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
-  .dim-row { display: flex; flex-direction: column; gap: 3px; }
-  .dim-label { font-size: 0.78rem; color: #666; display: flex; justify-content: space-between; }
-  .dim-label .val { font-variant-numeric: tabular-nums; color: #222; font-weight: 500; }
-  .bar-track { height: 6px; background: #eee; border-radius: 3px; position: relative; overflow: visible; }
-  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-  .bar-fill.pos { background: #60a5fa; }
-  .bar-fill.neg { background: #f87171; }
-  .bar-fill.fat { background: #d1d5db; }
-  .neutral-marker { position: absolute; top: -2px; width: 2px; height: 10px; background: #ccc; border-radius: 1px; }
-  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+  .dim-row { display: flex; flex-direction: column; gap: 4px; }
+  .dim-label { font-size: 0.77rem; color: var(--muted); display: flex; justify-content: space-between; }
+  .dim-label .val { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+  .bar-track { height: 5px; background: var(--surface-hi); border-radius: 3px; position: relative; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+  .bar-fill.pos { background: #5d91ed; }
+  .bar-fill.att { background: #e279a7; }
+  .bar-fill.thr { background: #ed9b43; }
+  .bar-fill.rew { background: #50c887; }
+  .bar-fill.neg { background: #e45b66; }
+  .bar-fill.fat { background: var(--faint); }
+  .neutral-marker { position: absolute; top: -2px; width: 2px; height: 9px; background: var(--line); border-radius: 1px; }
+  .section-label { font-size: 0.68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin: 18px 0 10px; }
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
   .field { display: flex; flex-direction: column; gap: 5px; }
-  .field label { font-size: 0.8rem; font-weight: 500; color: #555; }
-  .field input { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.88rem; }
-  .field input:focus { outline: none; border-color: #888; }
-  .adv-toggle { font-size: 0.8rem; color: #999; cursor: pointer; margin: 14px 0 10px; display: flex; align-items: center; gap: 4px; }
-  .adv-toggle::before { content: '▶'; font-size: 0.6rem; transition: transform 0.15s; }
-  .adv-toggle.open::before { transform: rotate(90deg); }
+  .field label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+  .field input { padding: 8px 11px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 0.88rem; color: var(--text); }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .field input::placeholder { color: var(--faint); }
+  .field input[type=number] { -moz-appearance: textfield; }
+  .adv-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; border-top: 1px solid var(--line); padding: 11px 0 9px; color: var(--muted); font-size: 0.8rem; cursor: pointer; margin-top: 8px; }
+  .adv-btn:hover { color: var(--text); }
+  .adv-arrow { transition: transform .2s; font-style: normal; }
+  .adv-btn.open .adv-arrow { transform: rotate(180deg); }
   .adv-fields { display: none; }
-  .adv-fields.open { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
-  .dim-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 0.82rem; }
-  .dim-table th { text-align: left; font-weight: 500; color: #888; padding: 4px 8px 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
-  .dim-table td { padding: 3px 8px; }
-  .dim-table tr:hover td { background: #fafafa; }
-  .dim-table td:first-child { color: #444; width: 40%; }
-  .dim-table input[type=number] { width: 72px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.82rem; -moz-appearance: textfield; }
+  .adv-fields.open { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding-top: 10px; }
+  .dim-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .dim-table th { text-align: left; font-weight: 600; color: var(--faint); padding: 4px 8px 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; }
+  .dim-table td { padding: 3px 8px; color: var(--muted); }
+  .dim-table tr:hover td { background: rgba(255,255,255,.02); }
+  .dim-table td:first-child { color: var(--text); width: 42%; }
+  .dim-table input[type=number] { width: 70px; padding: 4px 7px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: 6px; font-size: 0.8rem; color: var(--text); -moz-appearance: textfield; }
   .dim-table input[type=number]::-webkit-outer-spin-button,
   .dim-table input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .dim-table input[type=number]:focus { outline: none; border-color: #888; }
-  .save-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
-  .save-btn { padding: 9px 24px; background: #111; color: white; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 500; cursor: pointer; }
-  .save-btn:hover { background: #333; }
-  .save-btn:disabled { background: #bbb; cursor: default; }
-  .save-note { font-size: 0.78rem; color: #bbb; }
-  .save-ok { font-size: 0.82rem; color: #16a34a; display: none; }
-  .save-err { font-size: 0.82rem; color: #c00; display: none; }
-  @media (max-width: 520px) {
+  .dim-table input[type=number]:focus { outline: none; border-color: var(--accent); }
+  .save-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .save-btn { padding: 9px 22px; background: var(--accent); color: #071015; border: none; border-radius: var(--radius-sm); font-size: 0.86rem; font-weight: 700; cursor: pointer; transition: opacity .15s; }
+  .save-btn:hover { opacity: .9; }
+  .save-btn:disabled { opacity: .45; cursor: default; }
+  .save-note { font-size: 0.74rem; color: var(--faint); flex: 1; }
+  .save-ok { font-size: 0.8rem; color: var(--success); display: none; }
+  .save-err { font-size: 0.8rem; color: var(--danger); display: none; }
+  @media (max-width: 680px) {
+    .main { grid-template-columns: 1fr; }
     .dims-grid { grid-template-columns: 1fr; }
     .config-grid { grid-template-columns: 1fr; }
     .adv-fields.open { grid-template-columns: 1fr; }
-    .topbar { padding: 10px 14px; }
-    .main { padding: 14px 12px 48px; }
   }
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div class="status-dot" id="dot"></div>
-  <h1>Drivesoid</h1>
-  <span class="persona" id="persona-info">—</span>
-  <button id="lang-btn" onclick="toggleLang()">中文</button>
+  <div class="brand">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"><rect x="3" y="3" width="58" height="58" rx="17" fill="#0b0d15"/><rect x="3.75" y="3.75" width="56.5" height="56.5" rx="16.25" fill="none" stroke="#8b82b8" stroke-opacity=".24" stroke-width="1.5"/><path d="M25 13.5 15.5 19v10" fill="none" stroke="#70f6ff" stroke-width="3" stroke-linecap="square"/><path d="M15.5 35v10L25 50.5" fill="none" stroke="#728bff" stroke-width="3" stroke-linecap="square"/><path d="m39 13.5 9.5 5.5v10" fill="none" stroke="#b371ff" stroke-width="3" stroke-linecap="square"/><path d="M48.5 35v10L39 50.5" fill="none" stroke="#ef5cff" stroke-width="3" stroke-linecap="square"/><path d="M20.5 32 27 24.5h10L43.5 32 37 39.5H27Z" fill="#111522" stroke="#70f6ff" stroke-width="2"/><rect x="26.5" y="26.5" width="11" height="11" rx="2" transform="rotate(45 32 32)" fill="#7965ee"/><circle cx="32" cy="32" r="2.2" fill="#d8fcff"/><path d="M10.5 24.5h5M48.5 39.5h5" stroke="#70f6ff" stroke-width="1.6"/><path d="M23 8.5h8M41 55.5h-8" stroke="#ef5cff" stroke-width="1.4" opacity=".8"/></svg>
+    <span class="brand-name">Drivesoid</span>
+  </div>
+  <span class="persona-info" id="persona-info">—</span>
+  <div class="status-pill"><div class="status-dot" id="dot"></div><span id="t-status">ok</span></div>
+  <button class="lang-btn" id="lang-btn" onclick="toggleLang()">中文</button>
 </div>
 <div class="main">
 
-  <div class="section">
-    <div class="section-header">
+  <div class="card">
+    <div class="card-head">
       <h2 id="t-state">Emotional State</h2>
-      <span class="refresh-note" id="t-refresh">auto-refresh 15s</span>
+      <span id="t-refresh">auto-refresh 15s</span>
     </div>
     <div class="dims-grid" id="dims-grid"></div>
   </div>
 
-  <div class="section">
-    <div class="section-header"><h2 id="t-config">Configuration</h2></div>
-    <div class="config-grid">
-      <div class="field"><label id="t-ai-name">AI persona name</label><input id="c-ai-name"></div>
-      <div class="field"><label id="t-user-name">Your name</label><input id="c-user-name"></div>
-      <div class="field"><label id="t-relation">Relationship</label><input id="c-relation"></div>
-      <div class="field"><label id="t-tz">Timezone (UTC offset)</label><input id="c-tz" type="number" min="-12" max="14"></div>
-    </div>
-    <div class="adv-toggle" id="adv-toggle" onclick="toggleAdv()"><span id="t-adv">Advanced (classifier)</span></div>
-    <div class="adv-fields" id="adv-fields">
-      <div class="field"><label id="t-api-url">API base URL</label><input id="c-api-url"></div>
-      <div class="field"><label id="t-model">Model</label><input id="c-model"></div>
-    </div>
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="card">
+      <div class="card-head"><h2 id="t-config">Configuration</h2><span id="t-config-note">next session</span></div>
+      <div class="config-grid">
+        <div class="field"><label id="t-ai-name">AI persona name</label><input id="c-ai-name"></div>
+        <div class="field"><label id="t-user-name">Your name</label><input id="c-user-name"></div>
+        <div class="field"><label id="t-relation">Relationship</label><input id="c-relation"></div>
+        <div class="field"><label id="t-tz">Timezone (UTC)</label><input id="c-tz" type="number" min="-12" max="14"></div>
+      </div>
+      <button type="button" class="adv-btn" id="adv-toggle" onclick="toggleAdv()">
+        <span id="t-adv">Advanced (classifier)</span>
+        <i class="adv-arrow" id="adv-arrow">⌄</i>
+      </button>
+      <div class="adv-fields" id="adv-fields">
+        <div class="field"><label id="t-api-url">API base URL</label><input id="c-api-url"></div>
+        <div class="field"><label id="t-model">Model</label><input id="c-model"></div>
+      </div>
 
-    <div class="section-header" style="margin-top:20px;margin-bottom:8px;">
-      <h2 id="t-dims">Dimension Tuning</h2>
-      <span class="refresh-note" id="t-dims-note">takes effect on restart</span>
-    </div>
-    <table class="dim-table">
-      <thead><tr><th id="t-dim-col">Dimension</th><th id="t-neutral-col">Neutral</th><th id="t-floor-col">Floor</th></tr></thead>
-      <tbody id="dim-tbody"></tbody>
-    </table>
+      <div class="section-label" id="t-dims" style="margin-top:20px;">Dimension Tuning</div>
+      <table class="dim-table">
+        <thead><tr><th id="t-dim-col">Dimension</th><th id="t-neutral-col">Neutral</th><th id="t-floor-col">Floor</th></tr></thead>
+        <tbody id="dim-tbody"></tbody>
+      </table>
 
-    <div class="save-row">
-      <button class="save-btn" id="save-btn" onclick="saveConfig()"><span id="t-save">Save</span></button>
-      <span class="save-note" id="t-save-note">Basic fields apply on next session · Dimension changes require restart</span>
-      <span class="save-ok" id="save-ok">✓ <span id="t-saved">Saved</span></span>
-      <span class="save-err" id="save-err"></span>
+      <div class="save-row">
+        <button class="save-btn" id="save-btn" onclick="saveConfig()"><span id="t-save">Save</span></button>
+        <span class="save-note" id="t-save-note">Basic fields apply on next session · Dims require restart</span>
+        <span class="save-ok" id="save-ok">✓ <span id="t-saved">Saved</span></span>
+        <span class="save-err" id="save-err"></span>
+      </div>
     </div>
   </div>
 
 </div>
 <script>
 const DIMS_ORDER = ['vitality','longing','intimacy','possessiveness','lust','jealousy','anxiety','protectiveness','contentment','elation','seeking','play','dejection','irritability','fatigue'];
-const NEG_DIMS   = new Set(['jealousy','anxiety','dejection','irritability','fatigue']);
+const NEG_DIMS   = new Set(['jealousy','anxiety','dejection','irritability']);
+const ATT_DIMS   = new Set(['longing','intimacy','possessiveness','lust']);
+const THR_DIMS   = new Set(['jealousy','anxiety','protectiveness']);
+const REW_DIMS   = new Set(['contentment','elation','seeking','play']);
 const DIM_LABELS = {
   en: { vitality:'Vitality', longing:'Longing', intimacy:'Intimacy', possessiveness:'Possessiveness', lust:'Lust', jealousy:'Jealousy', anxiety:'Anxiety', protectiveness:'Protectiveness', contentment:'Contentment', elation:'Elation', seeking:'Seeking', play:'Play', dejection:'Dejection', irritability:'Irritability', fatigue:'Fatigue' },
   zh: { vitality:'活力', longing:'思念', intimacy:'亲密', possessiveness:'占有', lust:'欲望', jealousy:'嫉妒', anxiety:'焦虑', protectiveness:'保护欲', contentment:'满足', elation:'愉悦', seeking:'探索', play:'玩心', dejection:'低落', irritability:'烦躁', fatigue:'疲惫' },
 };
 const S = {
-  en: { state:'Emotional State', refresh:'auto-refresh 15s', config:'Configuration', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC offset)', adv:'Advanced (classifier)', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dims-note':'takes effect on restart', 'dim-col':'Dimension', 'neutral-col':'Neutral', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dimension changes require restart', saved:'Saved', 'lang-btn':'中文' },
-  zh: { state:'情感状态', refresh:'15秒自动刷新', config:'配置', 'ai-name':'AI 人格名称', 'user-name':'你的名字', relation:'关系', tz:'时区（UTC 偏移）', adv:'高级设置（分类器）', 'api-url':'API 地址', model:'模型', dims:'维度调参', 'dims-note':'重启后生效', 'dim-col':'维度', 'neutral-col':'基准值', 'floor-col':'下限', save:'保存', 'save-note':'基础字段下次会话生效 · 维度参数重启后生效', saved:'已保存', 'lang-btn':'EN' },
+  en: { state:'Emotional State', refresh:'auto-refresh 15s', status:'ok', config:'Configuration', 'config-note':'next session', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC)', adv:'Advanced (classifier)', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dim-col':'Dimension', 'neutral-col':'Neutral', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dims require restart', saved:'Saved', 'lang-btn':'中文' },
+  zh: { state:'情感状态', refresh:'15秒自动刷新', status:'正常', config:'配置', 'config-note':'下次会话生效', 'ai-name':'AI 人格名称', 'user-name':'你的名字', relation:'关系', tz:'时区（UTC）', adv:'高级设置（分类器）', 'api-url':'API 地址', model:'模型', dims:'维度调参', 'dim-col':'维度', 'neutral-col':'基准值', 'floor-col':'下限', save:'保存', 'save-note':'基础字段下次会话生效 · 维度参数重启后生效', saved:'已保存', 'lang-btn':'EN' },
 };
 
 let lang = 'en';
 let currentCfg = null;
 let dimDefaults = {};
+let lastStatus = null;
 
 function toggleLang() { lang = lang === 'en' ? 'zh' : 'en'; applyLang(); renderDimGrid(lastStatus); }
-function toggleAdv() { document.getElementById('adv-toggle').classList.toggle('open'); document.getElementById('adv-fields').classList.toggle('open'); }
+function toggleAdv() {
+  const toggle = document.getElementById('adv-toggle');
+  const fields = document.getElementById('adv-fields');
+  const arrow  = document.getElementById('adv-arrow');
+  toggle.classList.toggle('open');
+  fields.classList.toggle('open');
+  arrow.textContent = fields.classList.contains('open') ? '⌃' : '⌄';
+}
 
 function applyLang() {
   const s = S[lang];
@@ -431,7 +482,14 @@ function applyLang() {
   renderDimTbody();
 }
 
-let lastStatus = null;
+function dimClass(k) {
+  if (k === 'fatigue') return 'fat';
+  if (ATT_DIMS.has(k)) return 'att';
+  if (THR_DIMS.has(k)) return 'thr';
+  if (REW_DIMS.has(k)) return 'rew';
+  if (NEG_DIMS.has(k)) return 'neg';
+  return 'pos';
+}
 
 function renderDimGrid(status) {
   if (!status?.display) return;
@@ -443,18 +501,15 @@ function renderDimGrid(status) {
     const neutral = cfg[k]?.neutral ?? dimDefaults[k]?.neutral ?? 0.5;
     const pct = Math.round(v * 100);
     const nPct = Math.round(neutral * 100);
-    const cls = k === 'fatigue' ? 'fat' : (NEG_DIMS.has(k) ? 'neg' : 'pos');
     return \`<div class="dim-row">
       <div class="dim-label"><span>\${labels[k] || k}</span><span class="val">\${v.toFixed(2)}</span></div>
       <div class="bar-track">
-        <div class="bar-fill \${cls}" style="width:\${pct}%"></div>
+        <div class="bar-fill \${dimClass(k)}" style="width:\${pct}%"></div>
         <div class="neutral-marker" style="left:\${nPct}%"></div>
       </div>
     </div>\`;
   }).join('');
-
-  const dot = document.getElementById('dot');
-  dot.className = 'status-dot' + (status.stale ? ' stale' : '');
+  document.getElementById('dot').className = 'status-dot' + (status.stale ? ' stale' : '');
 }
 
 function renderDimTbody() {
@@ -486,13 +541,13 @@ async function loadConfig() {
     const data = await r.json();
     currentCfg = data;
     dimDefaults = data._defaults || {};
-    document.getElementById('persona-info').textContent = (data.persona?.name || '') + ' / ' + (data.user?.name || '');
-    document.getElementById('c-ai-name').value   = data.persona?.name || '';
-    document.getElementById('c-user-name').value  = data.user?.name || '';
-    document.getElementById('c-relation').value   = data.relation || '';
-    document.getElementById('c-tz').value         = data.timezone_offset_hours ?? 8;
-    document.getElementById('c-api-url').value    = data.classifier?.endpoint || '';
-    document.getElementById('c-model').value      = data.classifier?.model || '';
+    document.getElementById('persona-info').textContent = (data.persona?.name || '') + ' · ' + (data.user?.name || '');
+    document.getElementById('c-ai-name').value  = data.persona?.name || '';
+    document.getElementById('c-user-name').value = data.user?.name || '';
+    document.getElementById('c-relation').value  = data.relation || '';
+    document.getElementById('c-tz').value        = data.timezone_offset_hours ?? 8;
+    document.getElementById('c-api-url').value   = data.classifier?.endpoint || '';
+    document.getElementById('c-model').value     = data.classifier?.model || '';
     renderDimTbody();
   } catch {}
 }
