@@ -337,19 +337,34 @@ if (needsSetup()) {
   .card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
   .card-head h2 { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
   .card-head span { font-size: 0.74rem; color: var(--faint); }
-  .dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; }
-  .dim-row { display: flex; flex-direction: column; gap: 5px; }
-  .dim-label { font-size: 0.82rem; color: var(--muted); display: flex; justify-content: space-between; }
-  .dim-label .val { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
-  .bar-track { height: 6px; background: var(--surface-hi); border-radius: 3px; position: relative; }
-  .bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+  .highlights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+  .highlight { background: var(--surface-hi); border-radius: 14px; padding: 16px 18px; border: 1px solid var(--line); }
+  .highlight-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; line-height: 1.4; }
+  .highlight-value { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .highlight-tag { font-size: 0.7rem; color: var(--faint); margin-top: 4px; }
+  .highlight.pos .highlight-value { color: #5d91ed; }
+  .highlight.att .highlight-value { color: #e279a7; }
+  .highlight.thr .highlight-value { color: #ed9b43; }
+  .highlight.rew .highlight-value { color: #50c887; }
+  .highlight.neg .highlight-value { color: #e45b66; }
+  .highlight.fat .highlight-value { color: var(--muted); }
+  .emotion-group { margin-bottom: 24px; }
+  .emotion-group:last-child { margin-bottom: 0; }
+  .group-title { font-size: 0.72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .group-title::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
+  .dim-row { display: flex; flex-direction: column; gap: 7px; }
+  .dim-label { font-size: 0.9rem; color: var(--muted); display: flex; justify-content: space-between; }
+  .dim-label .val { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 700; }
+  .bar-track { height: 8px; background: var(--surface-hi); border-radius: 4px; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
   .bar-fill.pos { background: #5d91ed; }
   .bar-fill.att { background: #e279a7; }
   .bar-fill.thr { background: #ed9b43; }
   .bar-fill.rew { background: #50c887; }
   .bar-fill.neg { background: #e45b66; }
   .bar-fill.fat { background: var(--faint); }
-  .neutral-marker { position: absolute; top: -2px; width: 2px; height: 10px; background: var(--line); border-radius: 1px; }
+  .neutral-marker { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--line); border-radius: 1px; }
   .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
   .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .field label { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -404,7 +419,7 @@ if (needsSetup()) {
       <h2 id="t-state">Emotional State</h2>
       <span id="t-refresh">auto-refresh 15s</span>
     </div>
-    <div class="dims-grid" id="dims-grid"></div>
+    <div id="dims-area"></div>
   </div>
 
   <div class="card">
@@ -448,13 +463,21 @@ if (needsSetup()) {
 </div>
 <script>
 const DIMS_ORDER = ['vitality','longing','intimacy','possessiveness','lust','jealousy','anxiety','protectiveness','contentment','elation','seeking','play','dejection','irritability','fatigue'];
-const NEG_DIMS   = new Set(['jealousy','anxiety','dejection','irritability']);
-const ATT_DIMS   = new Set(['longing','intimacy','possessiveness','lust']);
-const THR_DIMS   = new Set(['jealousy','anxiety','protectiveness']);
-const REW_DIMS   = new Set(['contentment','elation','seeking','play']);
+const DIM_GROUPS = [
+  { key: 'activation', dims: ['vitality','fatigue'] },
+  { key: 'attachment', dims: ['longing','intimacy','possessiveness','lust'] },
+  { key: 'threat',     dims: ['jealousy','anxiety','protectiveness'] },
+  { key: 'reward',     dims: ['contentment','elation','seeking','play'] },
+  { key: 'negative',   dims: ['dejection','irritability'] },
+];
+const DIM_CLASS = { vitality:'pos', fatigue:'fat', longing:'att', intimacy:'att', possessiveness:'att', lust:'att', jealousy:'thr', anxiety:'thr', protectiveness:'thr', contentment:'rew', elation:'rew', seeking:'rew', play:'rew', dejection:'neg', irritability:'neg' };
 const DIM_LABELS = {
   en: { vitality:'Vitality', longing:'Longing', intimacy:'Intimacy', possessiveness:'Possessiveness', lust:'Lust', jealousy:'Jealousy', anxiety:'Anxiety', protectiveness:'Protectiveness', contentment:'Contentment', elation:'Elation', seeking:'Seeking', play:'Play', dejection:'Dejection', irritability:'Irritability', fatigue:'Fatigue' },
   zh: { vitality:'活力', longing:'思念', intimacy:'亲密', possessiveness:'占有', lust:'欲望', jealousy:'嫉妒', anxiety:'焦虑', protectiveness:'保护欲', contentment:'满足', elation:'愉悦', seeking:'探索', play:'玩心', dejection:'低落', irritability:'烦躁', fatigue:'疲惫' },
+};
+const GROUP_LABELS = {
+  en: { activation:'Activation', attachment:'Attachment', threat:'Threat', reward:'Reward', negative:'Negative' },
+  zh: { activation:'激活状态', attachment:'依恋连接', threat:'威胁反应', reward:'奖赏驱动', negative:'负向状态' },
 };
 const S = {
   en: { state:'Emotional State', refresh:'auto-refresh 15s', status:'ok', config:'Configuration', 'config-note':'next session', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC)', adv:'Advanced · classifier', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dim-col':'Dimension', 'neutral-col':'Neutral', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dims require restart', saved:'Saved', 'lang-btn':'中文' },
@@ -466,7 +489,7 @@ let currentCfg = null;
 let dimDefaults = {};
 let lastStatus = null;
 
-function toggleLang() { lang = lang === 'en' ? 'zh' : 'en'; applyLang(); renderDimGrid(lastStatus); }
+function toggleLang() { lang = lang === 'en' ? 'zh' : 'en'; applyLang(); if (lastStatus) renderDimGrid(lastStatus); }
 function toggleCollapse(btnId, bodyId, arrowId) {
   const btn  = document.getElementById(btnId);
   const body = document.getElementById(bodyId);
@@ -489,33 +512,51 @@ function applyLang() {
   renderDimTbody();
 }
 
-function dimClass(k) {
-  if (k === 'fatigue') return 'fat';
-  if (ATT_DIMS.has(k)) return 'att';
-  if (THR_DIMS.has(k)) return 'thr';
-  if (REW_DIMS.has(k)) return 'rew';
-  if (NEG_DIMS.has(k)) return 'neg';
-  return 'pos';
-}
-
 function renderDimGrid(status) {
   if (!status?.display) return;
-  const grid = document.getElementById('dims-grid');
+  const area   = document.getElementById('dims-area');
   const labels = DIM_LABELS[lang];
-  const cfg = currentCfg?.dimensions || dimDefaults;
-  grid.innerHTML = DIMS_ORDER.map(k => {
-    const v = status.display[k] ?? 0;
-    const neutral = cfg[k]?.neutral ?? dimDefaults[k]?.neutral ?? 0.5;
-    const pct = Math.round(v * 100);
-    const nPct = Math.round(neutral * 100);
-    return \`<div class="dim-row">
-      <div class="dim-label"><span>\${labels[k] || k}</span><span class="val">\${v.toFixed(2)}</span></div>
-      <div class="bar-track">
-        <div class="bar-fill \${dimClass(k)}" style="width:\${pct}%"></div>
-        <div class="neutral-marker" style="left:\${nPct}%"></div>
-      </div>
+  const grpLbls = GROUP_LABELS[lang];
+  const cfg    = currentCfg?.dimensions || dimDefaults;
+  const d      = status.display;
+
+  const top3 = DIMS_ORDER.filter(k => k !== 'fatigue')
+    .map(k => ({ k, v: d[k] ?? 0 }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 3);
+
+  const highlightsHtml = \`<div class="highlights">\${top3.map((item, i) => {
+    const cls = DIM_CLASS[item.k] || 'pos';
+    const tag = i === 0 ? (lang === 'zh' ? '最强' : 'strongest') : '';
+    return \`<div class="highlight \${cls}">
+      <div class="highlight-label">\${labels[item.k] || item.k}</div>
+      <div class="highlight-value">\${item.v.toFixed(2)}</div>
+      \${tag ? \`<div class="highlight-tag">\${tag}</div>\` : ''}
+    </div>\`;
+  }).join('')}</div>\`;
+
+  const groupsHtml = DIM_GROUPS.map(g => {
+    const rows = g.dims.map(k => {
+      const v    = d[k] ?? 0;
+      const neutral = cfg[k]?.neutral ?? dimDefaults[k]?.neutral ?? 0.5;
+      const pct  = Math.round(v * 100);
+      const nPct = Math.round(neutral * 100);
+      const cls  = DIM_CLASS[k] || 'pos';
+      return \`<div class="dim-row">
+        <div class="dim-label"><span>\${labels[k] || k}</span><span class="val">\${v.toFixed(2)}</span></div>
+        <div class="bar-track">
+          <div class="bar-fill \${cls}" style="width:\${pct}%"></div>
+          <div class="neutral-marker" style="left:\${nPct}%"></div>
+        </div>
+      </div>\`;
+    }).join('');
+    return \`<div class="emotion-group">
+      <div class="group-title">\${grpLbls[g.key] || g.key}</div>
+      <div class="dims-grid">\${rows}</div>
     </div>\`;
   }).join('');
+
+  area.innerHTML = highlightsHtml + groupsHtml;
   document.getElementById('dot').className = 'status-dot' + (status.stale ? ' stale' : '');
 }
 
