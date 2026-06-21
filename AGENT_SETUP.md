@@ -27,16 +27,20 @@ npm install
 
 ## Step 3 — Ask the user these questions (in conversation)
 
-Collect the following values before writing any config files.
+Collect the following values before writing any config files. Ask naturally in conversation — you don't need to present them as a numbered list.
 
-| # | Ask the user | Config field | Notes |
+| # | What to ask | Config field | Notes |
 |---|---|---|---|
-| 1 | "What is my name?" | `persona.name` | The AI persona's name |
-| 2 | "What is your name?" | `user.name` | The human user's name |
-| 3 | "How would you describe our relationship? (romantic / companion / friend)" | `relation` | Use exactly one of: `romantic`, `companion`, `friend` |
-| 4 | "What timezone are you in? (hours offset from UTC, e.g. 8 for Beijing, -5 for EST)" | `timezone_offset_hours` | Integer, default 8 |
-| 5 | "Which classifier endpoint should I use?" | `classifier.endpoint` | Default: `https://api.deepseek.com` |
-| 6 | "Which port should Drivesoid listen on?" | `server.port` | Default: 3001. Skip if user doesn't care. |
+| 1 | "What name should I go by? (this is my name as the AI persona)" | `persona.name` | The AI persona's display name |
+| 2 | "What's your name?" | `user.name` | The human user's name |
+| 3 | "How would you describe our relationship?" | `relation` | Free-form string, e.g. `romantic`, `best friends`, `work partner`. No restriction on values. |
+| 4 | "What timezone are you in? (hours offset from UTC, e.g. 8 for Beijing, -5 for New York)" | `timezone_offset_hours` | Integer, default 8 |
+| 5 | See classifier note below | `classifier.*` | See below |
+| 6 | Handled automatically | `server.port` | See port note below |
+
+**Classifier (question 5):** Drivesoid needs a language model to classify each message with an emotional label (e.g. affectionate, playful, anxious). This can be any cheap, fast model — it does not need to be powerful. Recommended: DeepSeek (`https://api.deepseek.com`, model `deepseek-v4-flash`). Ask the user: "Do you have a preferred API for a small classification model? If not, I'll use DeepSeek by default — you'll just need to add a DeepSeek API key." Collect the base URL and model name if they want a custom one.
+
+**Port (question 6):** Do NOT ask the user about ports — they likely don't know what that means. Instead, check programmatically whether port 3001 is available (e.g. `netstat -an | grep 3001` or attempt a socket bind). If 3001 is free, use it silently. If occupied, pick the next free port (3002, 3003, …) and inform the user: "I'll run the service on port XXXX."
 
 > **API key security note:** Do NOT ask the user for their API key through conversation — chat logs may be stored or transmitted. Instead, ask them to set it themselves (see Step 4).
 
@@ -52,16 +56,16 @@ Once they confirm it's done, continue.
 ### `drives.config.json`
 ```json
 {
-  "persona": { "name": "<answer 1>" },
-  "user":    { "name": "<answer 2>" },
-  "relation": "<answer 3>",
-  "timezone_offset_hours": <answer 4>,
+  "persona": { "name": "<persona name from question 1>" },
+  "user":    { "name": "<user name from question 2>" },
+  "relation": "<relation from question 3>",
+  "timezone_offset_hours": <integer from question 4>,
   "classifier": {
-    "endpoint": "<answer 5>",
-    "model": "deepseek-v4-flash",
+    "endpoint": "<classifier base URL from question 5, or https://api.deepseek.com>",
+    "model": "<model name from question 5, or deepseek-v4-flash>",
     "api_key_env": "DRIVES_API_KEY"
   },
-  "server": { "port": <answer 6> }
+  "server": { "port": <port determined automatically in question 6> }
 }
 ```
 
@@ -73,9 +77,9 @@ Once they confirm it's done, continue.
 npm start
 ```
 
-Verify it started:
+Verify it started (replace PORT with the port chosen in Step 3):
 ```
-curl http://127.0.0.1:3001/api/drives/status
+curl http://127.0.0.1:PORT/api/drives/status
 ```
 Expected: JSON with `snapshot_at`, `display`, `groups` fields. If `stale: true`, wait 30 seconds and retry.
 
