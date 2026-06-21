@@ -507,6 +507,7 @@ function appendHistory(state, now_ts, eventLog) {
     display: { ...state.display },
   };
   try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.appendFileSync(HISTORY_PATH, JSON.stringify(entry) + '\n');
   } catch (e) {
     console.error('[drives:worker] history append error:', e.message);

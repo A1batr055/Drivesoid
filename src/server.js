@@ -319,28 +319,29 @@ if (needsSetup()) {
     --radius: 16px; --radius-sm: 10px;
   }
   body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  .topbar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 0 20px; height: 52px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 0 28px; height: 56px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10; }
   .topbar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: var(--accent); opacity: .55; }
-  .brand { display: flex; align-items: center; gap: 9px; }
-  .brand svg { width: 26px; height: 26px; flex-shrink: 0; }
-  .brand-name { font-size: 0.95rem; font-weight: 700; letter-spacing: .02em; }
-  .persona-info { font-size: 0.78rem; color: var(--muted); flex: 1; }
-  .status-pill { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { width: 28px; height: 28px; flex-shrink: 0; }
+  .brand-name { font-size: 1rem; font-weight: 700; letter-spacing: .02em; }
+  .persona-info { font-size: 0.82rem; color: var(--muted); flex: 1; }
+  .status-pill { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
   .status-dot.stale { background: var(--danger); }
-  .lang-btn { font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--line); border-radius: 20px; background: transparent; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
+  .lang-btn { font-size: 0.78rem; padding: 5px 14px; border: 1px solid var(--line); border-radius: 20px; background: transparent; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
   .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
-  .card { background: var(--surface); border-radius: var(--radius); padding: 22px 20px; position: relative; }
-  .card::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: var(--accent); border-radius: 0 0 2px 2px; }
-  .card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
-  .card-head h2 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  .card-head span { font-size: 0.72rem; color: var(--faint); }
-  .dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
-  .dim-row { display: flex; flex-direction: column; gap: 4px; }
-  .dim-label { font-size: 0.77rem; color: var(--muted); display: flex; justify-content: space-between; }
+  .main { max-width: 1000px; margin: 0 auto; padding: 28px 20px 72px; display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+  .main > * { min-width: 0; }
+  .card { background: var(--surface); border-radius: var(--radius); padding: 28px 24px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 28px; right: 28px; height: 2px; background: var(--accent); border-radius: 0 0 2px 2px; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+  .card-head h2 { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .card-head span { font-size: 0.74rem; color: var(--faint); }
+  .dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; }
+  .dim-row { display: flex; flex-direction: column; gap: 5px; }
+  .dim-label { font-size: 0.82rem; color: var(--muted); display: flex; justify-content: space-between; }
   .dim-label .val { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
-  .bar-track { height: 5px; background: var(--surface-hi); border-radius: 3px; position: relative; }
+  .bar-track { height: 6px; background: var(--surface-hi); border-radius: 3px; position: relative; }
   .bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
   .bar-fill.pos { background: #5d91ed; }
   .bar-fill.att { background: #e279a7; }
@@ -348,42 +349,41 @@ if (needsSetup()) {
   .bar-fill.rew { background: #50c887; }
   .bar-fill.neg { background: #e45b66; }
   .bar-fill.fat { background: var(--faint); }
-  .neutral-marker { position: absolute; top: -2px; width: 2px; height: 9px; background: var(--line); border-radius: 1px; }
-  .section-label { font-size: 0.68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin: 18px 0 10px; }
-  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
-  .field input { padding: 8px 11px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 0.88rem; color: var(--text); }
+  .neutral-marker { position: absolute; top: -2px; width: 2px; height: 10px; background: var(--line); border-radius: 1px; }
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field label { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .field input { width: 100%; min-width: 0; padding: 9px 12px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--text); }
   .field input:focus { outline: none; border-color: var(--accent); }
   .field input::placeholder { color: var(--faint); }
   .field input[type=number] { -moz-appearance: textfield; }
-  .adv-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; border-top: 1px solid var(--line); padding: 11px 0 9px; color: var(--muted); font-size: 0.8rem; cursor: pointer; margin-top: 8px; }
-  .adv-btn:hover { color: var(--text); }
-  .adv-arrow { transition: transform .2s; font-style: normal; }
-  .adv-btn.open .adv-arrow { transform: rotate(180deg); }
-  .adv-fields { display: none; }
-  .adv-fields.open { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding-top: 10px; }
-  .dim-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  .dim-table th { text-align: left; font-weight: 600; color: var(--faint); padding: 4px 8px 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; }
-  .dim-table td { padding: 3px 8px; color: var(--muted); }
+  .collapse-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; border-top: 1px solid var(--line); padding: 12px 0 10px; color: var(--muted); font-size: 0.82rem; cursor: pointer; margin-top: 10px; }
+  .collapse-btn:hover { color: var(--text); }
+  .collapse-arrow { transition: transform .2s; font-style: normal; }
+  .collapse-btn.open .collapse-arrow { transform: rotate(180deg); }
+  .collapse-body { display: none; }
+  .collapse-body.open { display: block; }
+  .adv-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding-top: 12px; }
+  .dim-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 4px; }
+  .dim-table th { text-align: left; font-weight: 600; color: var(--faint); padding: 6px 8px 10px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; }
+  .dim-table td { padding: 5px 8px; color: var(--muted); }
   .dim-table tr:hover td { background: rgba(255,255,255,.02); }
-  .dim-table td:first-child { color: var(--text); width: 42%; }
-  .dim-table input[type=number] { width: 70px; padding: 4px 7px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: 6px; font-size: 0.8rem; color: var(--text); -moz-appearance: textfield; }
+  .dim-table td:first-child { color: var(--text); width: 44%; }
+  .dim-table input[type=number] { width: 68px; padding: 5px 7px; background: var(--surface-hi); border: 1px solid var(--line); border-radius: 6px; font-size: 0.8rem; color: var(--text); -moz-appearance: textfield; }
   .dim-table input[type=number]::-webkit-outer-spin-button,
   .dim-table input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
   .dim-table input[type=number]:focus { outline: none; border-color: var(--accent); }
-  .save-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
-  .save-btn { padding: 9px 22px; background: var(--accent); color: #071015; border: none; border-radius: var(--radius-sm); font-size: 0.86rem; font-weight: 700; cursor: pointer; transition: opacity .15s; }
+  .save-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+  .save-btn { padding: 10px 24px; background: var(--accent); color: #071015; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: opacity .15s; }
   .save-btn:hover { opacity: .9; }
   .save-btn:disabled { opacity: .45; cursor: default; }
-  .save-note { font-size: 0.74rem; color: var(--faint); flex: 1; }
-  .save-ok { font-size: 0.8rem; color: var(--success); display: none; }
-  .save-err { font-size: 0.8rem; color: var(--danger); display: none; }
-  @media (max-width: 680px) {
+  .save-note { font-size: 0.75rem; color: var(--faint); flex: 1; min-width: 0; }
+  .save-ok { font-size: 0.82rem; color: var(--success); display: none; }
+  .save-err { font-size: 0.82rem; color: var(--danger); display: none; }
+  @media (max-width: 720px) {
     .main { grid-template-columns: 1fr; }
     .dims-grid { grid-template-columns: 1fr; }
     .config-grid { grid-template-columns: 1fr; }
-    .adv-fields.open { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -407,30 +407,35 @@ if (needsSetup()) {
     <div class="dims-grid" id="dims-grid"></div>
   </div>
 
-  <div style="display:flex;flex-direction:column;gap:16px;">
-    <div class="card">
-      <div class="card-head"><h2 id="t-config">Configuration</h2><span id="t-config-note">next session</span></div>
-      <div class="config-grid">
-        <div class="field"><label id="t-ai-name">AI persona name</label><input id="c-ai-name"></div>
-        <div class="field"><label id="t-user-name">Your name</label><input id="c-user-name"></div>
-        <div class="field"><label id="t-relation">Relationship</label><input id="c-relation"></div>
-        <div class="field"><label id="t-tz">Timezone (UTC)</label><input id="c-tz" type="number" min="-12" max="14"></div>
-      </div>
-      <button type="button" class="adv-btn" id="adv-toggle" onclick="toggleAdv()">
-        <span id="t-adv">Advanced (classifier)</span>
-        <i class="adv-arrow" id="adv-arrow">⌄</i>
-      </button>
-      <div class="adv-fields" id="adv-fields">
+  <div class="card">
+    <div class="card-head"><h2 id="t-config">Configuration</h2><span id="t-config-note">next session</span></div>
+    <div class="config-grid">
+      <div class="field"><label id="t-ai-name">AI persona name</label><input id="c-ai-name"></div>
+      <div class="field"><label id="t-user-name">Your name</label><input id="c-user-name"></div>
+      <div class="field"><label id="t-relation">Relationship</label><input id="c-relation"></div>
+      <div class="field"><label id="t-tz">Timezone (UTC)</label><input id="c-tz" type="number" min="-12" max="14"></div>
+    </div>
+
+    <button type="button" class="collapse-btn" id="adv-toggle" onclick="toggleAdv()">
+      <span id="t-adv">Advanced (classifier)</span>
+      <i class="collapse-arrow" id="adv-arrow">⌄</i>
+    </button>
+    <div class="collapse-body" id="adv-fields">
+      <div class="adv-grid">
         <div class="field"><label id="t-api-url">API base URL</label><input id="c-api-url"></div>
         <div class="field"><label id="t-model">Model</label><input id="c-model"></div>
       </div>
+    </div>
 
-      <div class="section-label" id="t-dims" style="margin-top:20px;">Dimension Tuning</div>
-      <table class="dim-table">
+    <button type="button" class="collapse-btn" id="dims-toggle" onclick="toggleDims()">
+      <span id="t-dims">Dimension Tuning</span>
+      <i class="collapse-arrow" id="dims-arrow">⌄</i>
+    </button>
+    <div class="collapse-body" id="dims-collapse">
+      <table class="dim-table" style="margin-top:8px;">
         <thead><tr><th id="t-dim-col">Dimension</th><th id="t-neutral-col">Neutral</th><th id="t-floor-col">Floor</th></tr></thead>
         <tbody id="dim-tbody"></tbody>
       </table>
-
       <div class="save-row">
         <button class="save-btn" id="save-btn" onclick="saveConfig()"><span id="t-save">Save</span></button>
         <span class="save-note" id="t-save-note">Basic fields apply on next session · Dims require restart</span>
@@ -452,8 +457,8 @@ const DIM_LABELS = {
   zh: { vitality:'活力', longing:'思念', intimacy:'亲密', possessiveness:'占有', lust:'欲望', jealousy:'嫉妒', anxiety:'焦虑', protectiveness:'保护欲', contentment:'满足', elation:'愉悦', seeking:'探索', play:'玩心', dejection:'低落', irritability:'烦躁', fatigue:'疲惫' },
 };
 const S = {
-  en: { state:'Emotional State', refresh:'auto-refresh 15s', status:'ok', config:'Configuration', 'config-note':'next session', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC)', adv:'Advanced (classifier)', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dim-col':'Dimension', 'neutral-col':'Neutral', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dims require restart', saved:'Saved', 'lang-btn':'中文' },
-  zh: { state:'情感状态', refresh:'15秒自动刷新', status:'正常', config:'配置', 'config-note':'下次会话生效', 'ai-name':'AI 人格名称', 'user-name':'你的名字', relation:'关系', tz:'时区（UTC）', adv:'高级设置（分类器）', 'api-url':'API 地址', model:'模型', dims:'维度调参', 'dim-col':'维度', 'neutral-col':'基准值', 'floor-col':'下限', save:'保存', 'save-note':'基础字段下次会话生效 · 维度参数重启后生效', saved:'已保存', 'lang-btn':'EN' },
+  en: { state:'Emotional State', refresh:'auto-refresh 15s', status:'ok', config:'Configuration', 'config-note':'next session', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC)', adv:'Advanced · classifier', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dim-col':'Dimension', 'neutral-col':'Neutral', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dims require restart', saved:'Saved', 'lang-btn':'中文' },
+  zh: { state:'情感状态', refresh:'15秒自动刷新', status:'正常', config:'配置', 'config-note':'下次会话生效', 'ai-name':'AI 人格名称', 'user-name':'你的名字', relation:'关系', tz:'时区（UTC）', adv:'高级设置 · 分类器', 'api-url':'API 地址', model:'模型', dims:'维度调参', 'dim-col':'维度', 'neutral-col':'基准值', 'floor-col':'下限', save:'保存', 'save-note':'基础字段下次会话生效 · 维度参数重启后生效', saved:'已保存', 'lang-btn':'EN' },
 };
 
 let lang = 'en';
@@ -462,14 +467,16 @@ let dimDefaults = {};
 let lastStatus = null;
 
 function toggleLang() { lang = lang === 'en' ? 'zh' : 'en'; applyLang(); renderDimGrid(lastStatus); }
-function toggleAdv() {
-  const toggle = document.getElementById('adv-toggle');
-  const fields = document.getElementById('adv-fields');
-  const arrow  = document.getElementById('adv-arrow');
-  toggle.classList.toggle('open');
-  fields.classList.toggle('open');
-  arrow.textContent = fields.classList.contains('open') ? '⌃' : '⌄';
+function toggleCollapse(btnId, bodyId, arrowId) {
+  const btn  = document.getElementById(btnId);
+  const body = document.getElementById(bodyId);
+  const arrow = document.getElementById(arrowId);
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '⌃' : '⌄';
 }
+function toggleAdv()  { toggleCollapse('adv-toggle',  'adv-fields',    'adv-arrow');  }
+function toggleDims() { toggleCollapse('dims-toggle', 'dims-collapse', 'dims-arrow'); }
 
 function applyLang() {
   const s = S[lang];
