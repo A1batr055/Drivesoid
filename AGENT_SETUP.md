@@ -25,24 +25,40 @@ npm install
 
 ---
 
-## Step 3 — Ask the user these questions (in conversation)
+## Step 3 — Generate a setup sheet for the user to fill in
 
-Collect the following values before writing any config files. Ask naturally in conversation — you don't need to present them as a numbered list.
+Do NOT collect answers through conversation. Instead:
 
-| # | What to ask | Config field | Notes |
-|---|---|---|---|
-| 1 | "What name should I go by? (this is my name as the AI persona)" | `persona.name` | The AI persona's display name |
-| 2 | "What's your name?" | `user.name` | The human user's name |
-| 3 | "How would you describe our relationship?" | `relation` | Free-form string, e.g. `romantic`, `best friends`, `work partner`. No restriction on values. |
-| 4 | "What timezone are you in? (hours offset from UTC, e.g. 8 for Beijing, -5 for New York)" | `timezone_offset_hours` | Integer, default 8 |
-| 5 | See classifier note below | `classifier.*` | See below |
-| 6 | Handled automatically | `server.port` | See port note below |
+1. Write the following file to the repo root as `drives.answers.json`:
 
-**Classifier (question 5):** Drivesoid needs a language model to classify each message with an emotional label (e.g. affectionate, playful, anxious). This can be any cheap, fast model — it does not need to be powerful. Recommended: DeepSeek (`https://api.deepseek.com`, model `deepseek-v4-flash`). Ask the user: "Do you have a preferred API for a small classification model? If not, I'll use DeepSeek by default — you'll just need to add a DeepSeek API key." Collect the base URL and model name if they want a custom one.
+```json
+{
+  "_readme": "Fill in all fields below, then tell me you are done.",
+  "ai_name": "",
+  "your_name": "",
+  "relationship": "",
+  "timezone_utc_offset": 8,
+  "classifier_api_url": "https://api.deepseek.com",
+  "classifier_model": "deepseek-v4-flash"
+}
+```
 
-**Port (question 6):** Do NOT ask the user about ports — they likely don't know what that means. Instead, check programmatically whether port 3001 is available (e.g. `netstat -an | grep 3001` or attempt a socket bind). If 3001 is free, use it silently. If occupied, pick the next free port (3002, 3003, …) and inform the user: "I'll run the service on port XXXX."
+2. Tell the user:
 
-> **API key security note:** Do NOT ask the user for their API key through conversation — chat logs may be stored or transmitted. Instead, ask them to set it themselves (see Step 4).
+   > "I've created a setup sheet at `drives.answers.json` in the Drivesoid folder. Please open it and fill in:
+   > - **ai_name** — what you'd like to call me
+   > - **your_name** — your name
+   > - **relationship** — how you'd describe our relationship (anything you like: romantic, best friends, work partner, etc.)
+   > - **timezone_utc_offset** — your UTC offset (e.g. 8 for China/Singapore, -5 for New York). Default is 8.
+   > - **classifier_api_url / classifier_model** — leave as-is to use DeepSeek (recommended). The classifier labels your messages for emotional context; a cheap fast model is ideal.
+   >
+   > Let me know when you're done."
+
+3. Wait for the user to confirm, then read `drives.answers.json` and proceed.
+
+**Port:** Do NOT ask the user about ports. Check programmatically whether 3001 is free (e.g. `netstat -an | grep 3001`). If free, use 3001 silently. If occupied, pick the next free port and tell the user which one you chose.
+
+> **API key security note:** Do NOT ask the user for their API key through conversation — chat logs may be stored. Handle key setup separately in Step 4.
 
 ---
 
@@ -60,20 +76,25 @@ Collect the following values before writing any config files. Ask naturally in c
 5. Wait for the user to confirm the key is in place before continuing.
 
 ### `drives.config.json`
+
+Read values from `drives.answers.json`, then write:
+
 ```json
 {
-  "persona": { "name": "<persona name from question 1>" },
-  "user":    { "name": "<user name from question 2>" },
-  "relation": "<relation from question 3>",
-  "timezone_offset_hours": <integer from question 4>,
+  "persona": { "name": "<ai_name>" },
+  "user":    { "name": "<your_name>" },
+  "relation": "<relationship>",
+  "timezone_offset_hours": <timezone_utc_offset>,
   "classifier": {
-    "endpoint": "<classifier base URL from question 5, or https://api.deepseek.com>",
-    "model": "<model name from question 5, or deepseek-v4-flash>",
+    "endpoint": "<classifier_api_url>",
+    "model": "<classifier_model>",
     "api_key_env": "DRIVES_API_KEY"
   },
-  "server": { "port": <port determined automatically in question 6> }
+  "server": { "port": <auto-detected free port> }
 }
 ```
+
+After writing `drives.config.json`, delete `drives.answers.json` — it is a temp file.
 
 ---
 
