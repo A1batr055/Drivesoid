@@ -66,14 +66,12 @@ Do NOT collect answers through conversation. Instead:
 
 ### `.env`
 
-1. Copy `.env.example` to `.env` yourself (the user doesn't need to do this).
-2. Open `.env` and show the user what the file looks like — it will contain a line like:
+1. Ask the user for their API key. If they are using DeepSeek, direct them to https://platform.deepseek.com/api_keys to obtain one.
+2. Once the user provides the key, write `.env` yourself:
    ```
-   DRIVES_API_KEY=your_api_key_here
+   DRIVES_API_KEY=<key the user provided>
    ```
-3. Tell the user: "Please open the `.env` file in the Drivesoid folder and replace `your_api_key_here` with your actual API key. Do not share the key with me — just edit the file directly."
-4. If the user is using DeepSeek, tell them where to get a key: https://platform.deepseek.com/api_keys
-5. Wait for the user to confirm the key is in place before continuing.
+   > Note: writing the key through conversation means it may appear in chat logs. If the user prefers not to share it this way, offer to create `.env` with a placeholder and let them fill it in manually instead.
 
 ### `drives.config.json`
 
