@@ -25,88 +25,33 @@ npm install
 
 ---
 
-## Step 3 — Generate a setup sheet for the user to fill in
+## Step 3 — Run first-time setup via browser
 
-Do NOT collect answers through conversation. Instead:
+Do NOT collect configuration through conversation.
 
-1. Write the following file to the repo root as `drives.answers.json`:
-
-```json
-{
-  "_readme": "Fill in all fields below, then tell me you are done.",
-  "ai_name": "",
-  "your_name": "",
-  "relationship": "",
-  "timezone_utc_offset": 8,
-  "classifier_api_url": "https://api.deepseek.com",
-  "classifier_model": "deepseek-v4-flash"
-}
-```
+1. Run `npm start`. If `drives.config.json` is missing or the API key is not set, Drivesoid starts in **setup mode** automatically and prints:
+   ```
+   [drives] First-time setup — open http://127.0.0.1:3001/setup
+   ```
 
 2. Tell the user:
+   > "Please open **http://127.0.0.1:3001/setup** in your browser to complete setup. Fill in all fields and click Submit — I'll wait."
 
-   > "I've created a setup sheet at `drives.answers.json` in the Drivesoid folder. Please open it and fill in:
-   > - **ai_name** — what you'd like to call me
-   > - **your_name** — your name
-   > - **relationship** — how you'd describe our relationship (anything you like: romantic, best friends, work partner, etc.)
-   > - **timezone_utc_offset** — your UTC offset (e.g. 8 for China/Singapore, -5 for New York). Default is 8.
-   > - **classifier_api_url / classifier_model** — leave as-is to use DeepSeek (recommended). The classifier labels your messages for emotional context; a cheap fast model is ideal.
-   >
-   > Let me know when you're done."
+3. Wait for the user to confirm they submitted the form.
 
-3. Wait for the user to confirm, then read `drives.answers.json` and proceed.
-
-**Port:** Do NOT ask the user about ports. Check programmatically whether 3001 is free (e.g. `netstat -an | grep 3001`). If free, use 3001 silently. If occupied, pick the next free port and tell the user which one you chose.
-
-> **API key security note:** Do NOT ask the user for their API key through conversation — chat logs may be stored. Handle key setup separately in Step 4.
+The setup page collects persona name, user name, relationship, timezone, and API key. Everything is written to disk by the server — the user never needs to touch any files, and the API key does not pass through chat.
 
 ---
 
-## Step 4 — Write config files
+## Step 4 — Restart after setup
 
-### `.env`
+Once the user confirms the setup form was submitted, restart the service:
 
-First, create `.env` with a placeholder:
 ```
-DRIVES_API_KEY=your_api_key_here
-```
-
-Then tell the user:
-
-> "I need a classifier API key to label your messages emotionally. I recommend DeepSeek — it's cheap and works well for this.
->
-> 1. Get a key at: https://platform.deepseek.com/api_keys
-> 2. Run this in your terminal (replace the key with your actual one):
->    ```
->    echo "DRIVES_API_KEY=sk-your-actual-key" > .env
->    ```
->
-> The key stays on your machine and never passes through our chat."
-
-Wait for the user to confirm before continuing.
-
-> **No terminal?** If the user can only interact via chat, they can share the key directly and you write it to `.env` yourself — but advise them to rotate it afterward at https://platform.deepseek.com/api_keys
-
-### `drives.config.json`
-
-Read values from `drives.answers.json`, then write:
-
-```json
-{
-  "persona": { "name": "<ai_name>" },
-  "user":    { "name": "<your_name>" },
-  "relation": "<relationship>",
-  "timezone_offset_hours": <timezone_utc_offset>,
-  "classifier": {
-    "endpoint": "<classifier_api_url>",
-    "model": "<classifier_model>",
-    "api_key_env": "DRIVES_API_KEY"
-  },
-  "server": { "port": <auto-detected free port> }
-}
+npm start
 ```
 
-After writing `drives.config.json`, delete `drives.answers.json` — it is a temp file.
+The server will now load the config written by the setup page and start normally.
 
 ---
 
