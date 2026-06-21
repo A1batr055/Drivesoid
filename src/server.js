@@ -269,7 +269,7 @@ if (needsSetup()) {
     };
     try {
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
-      fs.writeFileSync(ENV_PATH, `DRIVES_API_KEY=${api_key}\n`, { mode: 0o600 });
+      fs.writeFileSync(ENV_PATH, `DRIVES_API_KEY=${api_key.replace(/[\r\n]/g, '')}\n`, { mode: 0o600 });
     } catch (e) {
       return res.status(500).send(e.message);
     }
@@ -640,7 +640,10 @@ setInterval(loadStatus, 15000);
       if (user?.name)    existing.user.name = user.name;
       if (relation)      existing.relation = relation;
       if (typeof timezone_offset_hours === 'number') existing.timezone_offset_hours = timezone_offset_hours;
-      if (classifier?.endpoint) existing.classifier.endpoint = classifier.endpoint.replace(/\/$/, '');
+      if (classifier?.endpoint) {
+        try { new URL(classifier.endpoint); } catch { return res.status(400).send('Invalid API URL'); }
+        existing.classifier.endpoint = classifier.endpoint.replace(/\/$/, '');
+      }
       if (classifier?.model)    existing.classifier.model = classifier.model;
       if (dimensions)    existing.dimensions = dimensions;
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(existing, null, 2));
