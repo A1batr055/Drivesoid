@@ -49,9 +49,15 @@ Collect the following values before writing any config files. Ask naturally in c
 ## Step 4 — Write config files
 
 ### `.env`
-Tell the user: "Please open `.env.example` in the Drivesoid directory, copy it to `.env`, and fill in your API key. Do not share the key with me."
 
-Once they confirm it's done, continue.
+1. Copy `.env.example` to `.env` yourself (the user doesn't need to do this).
+2. Open `.env` and show the user what the file looks like — it will contain a line like:
+   ```
+   DRIVES_API_KEY=your_api_key_here
+   ```
+3. Tell the user: "Please open the `.env` file in the Drivesoid folder and replace `your_api_key_here` with your actual API key. Do not share the key with me — just edit the file directly."
+4. If the user is using DeepSeek, tell them where to get a key: https://platform.deepseek.com/api_keys
+5. Wait for the user to confirm the key is in place before continuing.
 
 ### `drives.config.json`
 ```json
