@@ -14,19 +14,16 @@ Drivesoid runs as a lightweight HTTP sidecar alongside your AI bridge. Your brid
 
 **For AI agents:** Read [AGENT_SETUP.md](AGENT_SETUP.md) — it tells you exactly what to install, what to ask the user, and how to integrate.
 
-**For humans:** Run the setup wizard:
-```
-npm run setup
-```
-Then start:
+**For humans:** Start the service — setup runs automatically on first launch:
 ```
 npm start
 ```
+Then open **http://127.0.0.1:3001/setup** in your browser and fill in the form.
 
 ## Requirements
 
 - Node.js ≥ 18
-- Python 3 (for Claude Code hooks and `npm run health`)
+- Python 3 (for Claude Code hooks)
 - An OpenAI-compatible API key (DeepSeek recommended: `deepseek-v4-flash`)
 
 ## Configuration
@@ -62,11 +59,12 @@ DRIVES_API_KEY=sk-...
 
 `/internal/*` accepts loopback connections only (127.0.0.1). `/api/*` is unrestricted.
 
-## Health monitoring
+## Reset
 
+Wipe config and data to start fresh:
 ```
-npm run health          # last 7 days
-python3 scripts/drives_health.py 30  # last 30 days
+npm run reset
+npm start
 ```
 
 ## License

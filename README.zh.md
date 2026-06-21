@@ -12,20 +12,25 @@ Drivesoid 作为轻量 HTTP 旁路服务运行在你的 AI 桥接层旁边。你
 
 **给 AI Agent：** 阅读 [AGENT_SETUP.md](AGENT_SETUP.md)，里面逐步说明了安装方式、需要问用户什么、以及如何接入。
 
-**给人类用户：** 运行配置向导：
-```
-npm run setup
-```
-然后启动：
+**给人类用户：** 直接启动，首次运行会自动进入配置向导：
 ```
 npm start
 ```
+然后在浏览器打开 **http://127.0.0.1:3001/setup** 填写表单。
 
 ## 环境要求
 
 - Node.js ≥ 18
-- Python 3（Claude Code hook 和 `npm run health` 需要）
+- Python 3（Claude Code hook 需要）
 - 任意兼容 OpenAI 格式的 API Key（推荐 DeepSeek，价格低、速度快）
+
+## 重置
+
+清除配置与数据，重新开始：
+```
+npm run reset
+npm start
+```
 
 ## 许可证
 
