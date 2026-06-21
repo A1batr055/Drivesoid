@@ -66,12 +66,26 @@ Do NOT collect answers through conversation. Instead:
 
 ### `.env`
 
-1. Ask the user for their API key. If they are using DeepSeek, direct them to https://platform.deepseek.com/api_keys to obtain one.
-2. Once the user provides the key, write `.env` yourself:
-   ```
-   DRIVES_API_KEY=<key the user provided>
-   ```
-   > Note: writing the key through conversation means it may appear in chat logs. If the user prefers not to share it this way, offer to create `.env` with a placeholder and let them fill it in manually instead.
+First, create `.env` with a placeholder:
+```
+DRIVES_API_KEY=your_api_key_here
+```
+
+Then tell the user:
+
+> "I need a classifier API key to label your messages emotionally. I recommend DeepSeek — it's cheap and works well for this.
+>
+> 1. Get a key at: https://platform.deepseek.com/api_keys
+> 2. Run this in your terminal (replace the key with your actual one):
+>    ```
+>    echo "DRIVES_API_KEY=sk-your-actual-key" > .env
+>    ```
+>
+> The key stays on your machine and never passes through our chat."
+
+Wait for the user to confirm before continuing.
+
+> **No terminal?** If the user can only interact via chat, they can share the key directly and you write it to `.env` yourself — but advise them to rotate it afterward at https://platform.deepseek.com/api_keys
 
 ### `drives.config.json`
 
