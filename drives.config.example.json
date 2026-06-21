@@ -1,0 +1,18 @@
+{
+  "persona": {
+    "name": "Aria"
+  },
+  "user": {
+    "name": "Alex"
+  },
+  "relation": "romantic",
+  "timezone_offset_hours": 8,
+  "classifier": {
+    "endpoint": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash",
+    "api_key_env": "DRIVES_API_KEY"
+  },
+  "server": {
+    "port": 3001
+  }
+}
