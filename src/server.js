@@ -232,8 +232,11 @@ if (needsSetup()) {
   app.get('/setup', (req, res) => res.send(SETUP_HTML));
   app.post('/setup', (req, res) => {
     const { ai_name, user_name, relation, timezone, api_key, api_url, api_model } = req.body || {};
-    if (!ai_name || !user_name || !relation || !api_key) {
+    if (!ai_name || !user_name || !relation || !api_key || !api_url || !api_model) {
       return res.status(400).send('Missing required fields');
+    }
+    try { new URL(api_url); } catch {
+      return res.status(400).send('Invalid API URL');
     }
     const cfg = {
       persona:  { name: ai_name },

@@ -38,7 +38,7 @@ Copy `drives.config.example.json` → `drives.config.json` and fill in:
 | `relation` | `romantic` / `companion` / `friend` |
 | `timezone_offset_hours` | Local timezone offset (e.g. `8` for UTC+8) |
 | `classifier.endpoint` | API base URL |
-| `classifier.model` | Model name (default: `deepseek-v4-flash`) |
+| `classifier.model` | Model name (required, e.g. `deepseek-v4-flash` or `gpt-4o-mini`) |
 | `classifier.api_key_env` | Env var name holding the API key |
 | `server.port` | Port to listen on (default: `3001`) |
 
