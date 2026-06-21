@@ -39,7 +39,7 @@ async function main() {
 
   const root = path.join(__dirname, '..');
   fs.writeFileSync(path.join(root, 'drives.config.json'), JSON.stringify(config, null, 2));
-  fs.writeFileSync(path.join(root, '.env'), `DRIVES_API_KEY=${apiKey}\n`);
+  fs.writeFileSync(path.join(root, '.env'), `DRIVES_API_KEY=${apiKey}\n`, { mode: 0o600 });
 
   console.log('\nConfig written. Start with: npm start\n');
 }

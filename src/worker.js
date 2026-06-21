@@ -461,9 +461,9 @@ async function processEvents(state, now_ts) {
         break;
 
       case 'sleep_start':
+        state.sleep._base_at_sleep        = fatigueBase(state.sleep, ev_ts);
         state.sleep.status                = 'asleep';
         state.sleep.last_sleep_started_at = ev.timestamp;
-        state.sleep._base_at_sleep        = fatigueBase(state.sleep, ev_ts);
         state.unanswered_thread           = null;
         delete state.active_whim;
         break;

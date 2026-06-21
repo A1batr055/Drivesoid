@@ -20,7 +20,12 @@ function loopbackOnly(req, res, next) {
 
 function needsSetup() {
   if (!fs.existsSync(CONFIG_PATH)) return true;
-  const key = process.env.DRIVES_API_KEY || '';
+  let keyEnv = 'DRIVES_API_KEY';
+  try {
+    const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    keyEnv = cfg.classifier?.api_key_env || keyEnv;
+  } catch {}
+  const key = process.env[keyEnv] || '';
   return !key || key === 'your_api_key_here';
 }
 
@@ -236,15 +241,15 @@ if (needsSetup()) {
       relation,
       timezone_offset_hours: parseInt(timezone, 10),
       classifier: {
-        endpoint:    (api_url || 'https://api.deepseek.com').replace(/\/$/, ''),
-        model:       api_model || 'deepseek-v4-flash',
+        endpoint:    (api_url || '').replace(/\/$/, ''),
+        model:       api_model || null,
         api_key_env: 'DRIVES_API_KEY',
       },
       server: { port: SETUP_PORT },
     };
     try {
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
-      fs.writeFileSync(ENV_PATH, `DRIVES_API_KEY=${api_key}\n`);
+      fs.writeFileSync(ENV_PATH, `DRIVES_API_KEY=${api_key}\n`, { mode: 0o600 });
     } catch (e) {
       return res.status(500).send(e.message);
     }
@@ -531,6 +536,22 @@ setInterval(loadStatus, 15000);
 </html>`;
 
   app.get('/api/drives/status', (req, res) => { res.json(drives.getStatus()); });
+
+  app.get('/api/drives/context', (req, res) => {
+    const status = drives.getStatus();
+    if (!status?.display || status.stale) return res.status(503).send('');
+    const d = status.display;
+    const f = k => (d[k] ?? 0).toFixed(2);
+    const block = [
+      '[drives]',
+      `vitality ${f('vitality')}  fatigue ${f('fatigue')}`,
+      `longing ${f('longing')}  intimacy ${f('intimacy')}  possessiveness ${f('possessiveness')}  lust ${f('lust')}`,
+      `jealousy ${f('jealousy')}  anxiety ${f('anxiety')}  protectiveness ${f('protectiveness')}`,
+      `contentment ${f('contentment')}  elation ${f('elation')}  seeking ${f('seeking')}  play ${f('play')}`,
+      `dejection ${f('dejection')}  irritability ${f('irritability')}`,
+    ].join('\n');
+    res.set('Content-Type', 'text/plain').send(block);
+  });
 
   app.get('/dashboard', (req, res) => res.send(DASHBOARD_HTML));
 

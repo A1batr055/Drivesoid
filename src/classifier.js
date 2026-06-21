@@ -1,11 +1,13 @@
 'use strict';
-const https  = require('https');
 const config = require('./config').load();
 
 const API_URL            = new URL(config.classifier.endpoint.replace(/\/$/, '') + '/chat/completions');
 const API_KEY_ENV        = config.classifier.api_key_env;
-const MODEL              = config.classifier.model || 'deepseek-v4-flash';
+const MODEL              = config.classifier.model;
 const REQUEST_TIMEOUT_MS = 15000;
+const httpModule         = API_URL.protocol === 'https:' ? require('https') : require('http');
+
+if (!MODEL) throw new Error('[drives] classifier.model must be set in drives.config.json');
 
 const VALID_LABELS = new Set([
   'affectionate',
@@ -119,15 +121,13 @@ async function classifyMessage(text, context = []) {
   });
 
   return new Promise((resolve, reject) => {
-    const req = https.request(
+    const req = httpModule.request(
+      API_URL,
       {
-        protocol: API_URL.protocol,
-        hostname: API_URL.hostname,
-        path:     API_URL.pathname,
-        method:   'POST',
-        headers:  {
-          Authorization:   `Bearer ${apiKey}`,
-          'Content-Type':  'application/json',
+        method:  'POST',
+        headers: {
+          Authorization:    `Bearer ${apiKey}`,
+          'Content-Type':   'application/json',
           'Content-Length': Buffer.byteLength(body),
         },
       },

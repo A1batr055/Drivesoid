@@ -24,7 +24,7 @@ npm start
 ## Requirements
 
 - Node.js ≥ 18
-- Python 3 (for `npm run health` only)
+- Python 3 (for Claude Code hooks and `npm run health`)
 - An OpenAI-compatible API key (DeepSeek recommended: `deepseek-v4-flash`)
 
 ## Configuration
@@ -51,12 +51,14 @@ DRIVES_API_KEY=sk-...
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/drives/status` | GET | Current emotional state |
+| `/api/drives/status` | GET | Current emotional state (JSON) |
+| `/api/drives/context` | GET | Pre-formatted `[drives]` block for system prompt injection (plain text; empty when stale) |
+| `/dashboard` | GET | Live dashboard — view state, tune parameters |
 | `/internal/drives/event` | POST | Ingest a conversation event |
 | `/internal/drives/session-start` | POST | Catch-up tick at session start |
 | `/internal/drives/sleep` | POST | Sleep start/end events |
 
-Internal endpoints accept loopback connections only (127.0.0.1).
+`/internal/*` accepts loopback connections only (127.0.0.1). `/api/*` is unrestricted.
 
 ## Health monitoring
 

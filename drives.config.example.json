@@ -14,5 +14,22 @@
   },
   "server": {
     "port": 3001
+  },
+  "_dimensions_comment": "Optional: override neutral baseline and floor for any dimension. Remove this block to use defaults.",
+  "dimensions": {
+    "longing":        { "neutral": 0.30, "floor": 0.15 },
+    "intimacy":       { "neutral": 0.35, "floor": 0.06 },
+    "possessiveness": { "neutral": 0.30, "floor": 0.05 },
+    "lust":           { "neutral": 0.30, "floor": 0.05 },
+    "vitality":       { "neutral": 0.50, "floor": 0.08 },
+    "jealousy":       { "neutral": 0.22, "floor": 0.00 },
+    "anxiety":        { "neutral": 0.20, "floor": 0.02 },
+    "protectiveness": { "neutral": 0.25, "floor": 0.05 },
+    "contentment":    { "neutral": 0.35, "floor": 0.06 },
+    "elation":        { "neutral": 0.20, "floor": 0.02 },
+    "seeking":        { "neutral": 0.25, "floor": 0.12 },
+    "play":           { "neutral": 0.25, "floor": 0.03 },
+    "dejection":      { "neutral": 0.15, "floor": 0.00 },
+    "irritability":   { "neutral": 0.15, "floor": 0.00 }
   }
 }

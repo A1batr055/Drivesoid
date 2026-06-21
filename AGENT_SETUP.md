@@ -5,7 +5,9 @@ Follow each step in order. Ask the user only the questions listed below — noth
 
 ---
 
-## Step 1 — Prerequisites
+## Step 1 — Environment check
+
+**1a — Node.js**
 
 Verify Node.js ≥ 18 is installed:
 ```
@@ -13,13 +15,43 @@ node --version
 ```
 If missing, install from https://nodejs.org/
 
+**1b — Port availability**
+
+Drivesoid defaults to port 3001. Check whether it is already in use:
+```
+# Linux / macOS
+lsof -i :3001
+
+# Windows
+netstat -ano | findstr :3001
+```
+
+If port 3001 is occupied, identify the process. If it is unrelated to Drivesoid, ask the user which port to use instead — then remember to set `server.port` in `drives.config.json` after setup.
+
+**1c — Existing bridge or middleware**
+
+Check whether the user already has an AI bridge or middleware running that sends messages to Claude or another model:
+
+- Ask the user: *"Do you have an existing bridge, proxy, or middleware that routes your AI conversations? (e.g. a Node.js server, Python script, or self-hosted tool)"*
+- If yes, note the language and entry point — you will need to add event-reporting calls to it in Step 6.
+- If no, the Claude Code hook approach in Step 6 is the simplest path.
+
+**1d — Clone target directory**
+
+Choose where to install. Default is `~/Drivesoid`. Check the directory does not already exist:
+```
+ls ~/Drivesoid 2>/dev/null && echo "EXISTS" || echo "OK"
+```
+If it exists, ask the user whether to reinstall (delete and re-clone) or use a different path.
+
 ---
 
 ## Step 2 — Clone the repo
 
+Use the install directory confirmed in Step 1d:
 ```
-git clone https://github.com/A1batr055/Drivesoid.git
-cd Drivesoid
+git clone https://github.com/A1batr055/Drivesoid.git <install-dir>
+cd <install-dir>
 npm install
 ```
 
@@ -29,6 +61,8 @@ npm install
 
 Do NOT collect configuration through conversation.
 
+**Note:** Setup always runs on port 3001. The service port also defaults to 3001. To use a different port, edit `server.port` in `drives.config.json` after completing setup, then restart.
+
 1. Run `npm start`. If `drives.config.json` is missing or the API key is not set, Drivesoid starts in **setup mode** automatically and prints:
    ```
    [drives] First-time setup — open http://127.0.0.1:3001/setup
@@ -37,41 +71,66 @@ Do NOT collect configuration through conversation.
 2. Tell the user:
    > "Please open **http://127.0.0.1:3001/setup** in your browser to complete setup. Fill in all fields and click Submit — I'll wait."
 
-3. Wait for the user to confirm they submitted the form.
+3. Wait for the user to confirm they submitted the form, then stop the process (Ctrl+C).
 
 The setup page collects persona name, user name, relationship, timezone, and API key. Everything is written to disk by the server — the user never needs to touch any files, and the API key does not pass through chat.
 
 ---
 
-## Step 4 — Restart after setup
-
-Once the user confirms the setup form was submitted, restart the service:
+## Step 4 — Start the service
 
 ```
 npm start
 ```
 
-The server will now load the config written by the setup page and start normally.
-
----
-
-## Step 5 — Start the service
-
-```
-npm start
-```
-
-Verify it started (replace PORT with the port chosen in Step 3):
+Drivesoid will load the config written by the setup page and start normally. Verify it started:
 ```
 curl http://127.0.0.1:PORT/api/drives/status
 ```
+Replace PORT with the service port (default 3001).
 Expected: JSON with `snapshot_at`, `display`, `groups` fields. If `stale: true`, wait 30 seconds and retry.
+
+---
+
+## Step 5 — Keep it running in the background (optional but recommended)
+
+`npm start` runs in the foreground — closing the terminal stops Drivesoid and drives go stale. To keep it alive automatically, use pm2:
+
+**Install pm2 (one time):**
+```
+npm install -g pm2
+```
+
+**Start Drivesoid with pm2 (from the install directory):**
+```
+cd <install-dir>
+pm2 start ecosystem.config.js
+```
+
+**Make it restart automatically on reboot:**
+```
+pm2 save
+pm2 startup
+```
+Run the command that `pm2 startup` prints (it will look like `sudo env PATH=...`).
+
+**Useful commands:**
+```
+pm2 status          # check if running
+pm2 logs drivesoid  # view logs
+pm2 stop drivesoid  # stop it
+pm2 restart drivesoid  # restart after config changes
+```
+
+If the user does not want to install pm2, they can leave `npm start` running in a terminal and skip this step.
 
 ---
 
 ## Step 6 — Integration
 
-Call these endpoints from your AI bridge:
+### 6a — Report events
+
+Call these endpoints from your AI bridge so Drivesoid can track what's happening:
 
 | When | Endpoint | Body |
 |---|---|---|
@@ -81,10 +140,76 @@ Call these endpoints from your AI bridge:
 | Quick reply detected | `POST /internal/drives/event` | `{"type":"msg_quick_reply"}` |
 | User goes to sleep | `POST /internal/drives/sleep` | `{"type":"sleep_start"}` |
 | User wakes up | `POST /internal/drives/sleep` | `{"type":"sleep_end"}` |
-| Read current state | `GET /api/drives/status` | — |
 
 The `context` array in `msg_user` is optional but improves classification accuracy.
 Format: `[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]`
+
+### 6b — Inject drives state into AI context
+
+The AI needs to receive its current drives state each turn so it can reflect it in its persona.
+
+**Option A — Claude Code hook (recommended for Claude Code users)**
+
+Copy both hooks from this repo to your workspace:
+```
+mkdir -p <your-workspace>/.claude/hooks
+cp hooks/UserPromptSubmit.sh <your-workspace>/.claude/hooks/UserPromptSubmit.sh
+cp hooks/Stop.sh             <your-workspace>/.claude/hooks/Stop.sh
+chmod +x <your-workspace>/.claude/hooks/UserPromptSubmit.sh
+chmod +x <your-workspace>/.claude/hooks/Stop.sh
+```
+
+Enable hooks in your Claude Code settings (`.claude/settings.json`). **Paths must be absolute.** On Windows, prefix each command with `bash `:
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": "/absolute/path/to/.claude/hooks/UserPromptSubmit.sh"}]}],
+    "Stop":             [{"matcher": "", "hooks": [{"type": "command", "command": "/absolute/path/to/.claude/hooks/Stop.sh"}]}]
+  }
+}
+```
+
+**Requirements:** Python 3 must be installed (used by both hooks). On Windows, hooks run inside Git Bash — install it from https://git-scm.com/ if not present, and use forward-slash paths. On macOS, install Python 3 via `brew install python3` if not already present.
+
+`UserPromptSubmit` fires before each turn: it reports the user message to the classifier and injects a `[drives]` block as `additionalContext`:
+```
+[drives]
+vitality 0.62  fatigue 0.18
+longing 0.41  intimacy 0.68  possessiveness 0.33  lust 0.25
+jealousy 0.10  anxiety 0.22  protectiveness 0.51
+contentment 0.60  elation 0.38  seeking 0.47  play 0.44
+dejection 0.09  irritability 0.14
+```
+
+`Stop` fires after each completed AI turn and records the assistant response as an event.
+
+Add the `CLAUDE.md` file from this repo to your workspace (or paste its contents into your existing `CLAUDE.md`) so the AI persona understands what the `[drives]` block means.
+
+**Option B — Custom bridge / middleware**
+
+Before each Claude API call, fetch the formatted block from `GET /api/drives/context` and inject it as a system message:
+
+```js
+const ctx = await fetch('http://127.0.0.1:PORT/api/drives/context').then(r => r.text());
+// empty string when state is stale — skip injection
+if (ctx) messages.unshift({ role: 'system', content: ctx });
+```
+
+**Option C — OpenAI Codex CLI or other agent CLIs**
+
+Codex has no hook system. Fetch the drives context before building your prompt file, then prepend it:
+
+```bash
+CONTEXT=$(curl -sf http://127.0.0.1:PORT/api/drives/context || echo "")
+if [ -n "$CONTEXT" ]; then
+  printf '%s\n\n' "$CONTEXT" | cat - prompt.txt > /tmp/prompt_with_context.txt
+  codex exec ... < /tmp/prompt_with_context.txt
+else
+  codex exec ... < prompt.txt
+fi
+```
+
+Event reporting (msg_user, msg_assistant) must be called explicitly by your wrapper script or the agent itself after each exchange.
 
 ---
 
