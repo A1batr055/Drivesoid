@@ -4,3 +4,4 @@ data/*
 drives.config.json
 .env
 !.env.example
+*.log
