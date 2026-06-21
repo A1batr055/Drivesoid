@@ -4,7 +4,8 @@ const path   = require('path');
 const crypto = require('crypto');
 const { readState, writeState }   = require('./state');
 const { classifyMessage }         = require('./classifier');
-const { timezone_offset_hours: TZ_OFFSET = 8 } = require('./config').load();
+const _cfg = require('./config').load();
+const { timezone_offset_hours: TZ_OFFSET = 8 } = _cfg;
 
 const DATA_DIR     = path.join(__dirname, '../data');
 const EVENTS_PATH  = path.join(DATA_DIR, 'events.jsonl');
@@ -38,6 +39,18 @@ const DIM_FLOOR = {
   contentment: 0.06, elation: 0.02, seeking: 0.12, play: 0.03,
   dejection: 0,   irritability: 0,
 };
+
+// Apply optional dimension overrides from config
+if (_cfg.dimensions) {
+  for (const [k, v] of Object.entries(_cfg.dimensions)) {
+    if (DIMS[k]) {
+      if (typeof v.neutral === 'number') DIMS[k].neutral = v.neutral;
+    }
+    if (Object.prototype.hasOwnProperty.call(DIM_FLOOR, k)) {
+      if (typeof v.floor === 'number') DIM_FLOOR[k] = v.floor;
+    }
+  }
+}
 
 const FATIGUE_C = { peak: 3, amp: 0.8, width: 10 };
 
