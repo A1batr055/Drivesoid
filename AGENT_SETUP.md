@@ -222,15 +222,11 @@ cp hooks/codex/UserPromptSubmit.py <your-codex-hooks-dir>/
 cp hooks/codex/Stop.py             <your-codex-hooks-dir>/
 ```
 
-Register in `~/.codex/hooks.json` (use `hooks/codex/hooks.json.example` as a template — replace the path placeholders with the absolute path to your Drivesoid install). If the service port is not 3001, prefix the command with `DRIVESOID_PORT=<port>`:
+Register in `~/.codex/hooks.json` — use `hooks/codex/hooks.json.example` as a template and replace the path placeholders with the absolute path to your Drivesoid install.
 
+If the service port is not 3001, prefix each command with `DRIVESOID_PORT=<port>`:
 ```json
-{
-  "hooks": {
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "DRIVESOID_PORT=3001 python \"/path/to/drivesoid/hooks/codex/UserPromptSubmit.py\"", "timeout": 20, "statusMessage": "Loading Drivesoid state"}]}],
-    "Stop":             [{"hooks": [{"type": "command", "command": "DRIVESOID_PORT=3001 python \"/path/to/drivesoid/hooks/codex/Stop.py\"", "timeout": 5, "statusMessage": "Reporting turn to Drivesoid"}]}]
-  }
-}
+"command": "DRIVESOID_PORT=3099 python \"/path/to/drivesoid/hooks/codex/UserPromptSubmit.py\""
 ```
 
 After saving, restart Codex and run `/hooks` to review and trust both commands.
