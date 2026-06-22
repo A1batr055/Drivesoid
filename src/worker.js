@@ -388,11 +388,6 @@ async function processEvents(state, now_ts) {
     return log;
   }
 
-  pending.sort((a, b) => {
-    const dt = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-    return dt !== 0 ? dt : a.event_id.localeCompare(b.event_id);
-  });
-
   for (const ev of pending) {
     const ev_ts = new Date(ev.timestamp).getTime();
     if (!Number.isFinite(ev_ts)) { state.last_processed_event_id = ev.event_id; continue; }
