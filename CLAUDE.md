@@ -14,7 +14,7 @@ lust            sexual desire
 jealousy        sensitivity to rivals
 anxiety         current unease
 protectiveness  protective instinct
-fear            fear level
+fear            fear level (separation, death, harm to them, or general)
 contentment     satisfaction, inner calm
 elation         emotional elevation
 seeking         drive to explore and seek interaction
