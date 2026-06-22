@@ -54,7 +54,7 @@ server.tool(
   'drives_event',
   'Report a drives event (msg_user, msg_assistant, msg_quick_reply, msg_hot_conv, sex_end, calendar).',
   {
-    type:    z.string(),
+    type:    z.enum(['msg_user', 'msg_assistant', 'msg_quick_reply', 'msg_hot_conv', 'sex_end', 'calendar']),
     payload: z.record(z.unknown()).optional(),
   },
   async ({ type, payload }) => toolResult(await post('/internal/drives/event', { type, payload: payload || {} }))
@@ -64,10 +64,7 @@ server.tool(
   'drives_context',
   'Get the current drives state as a plain-text block for injection into context.',
   {},
-  async () => {
-    const r = await get('/api/drives/context');
-    return { content: [{ type: 'text', text: r.body || '(drives not available)' }] };
-  }
+  async () => toolResult(await get('/api/drives/context'))
 );
 
 async function main() {

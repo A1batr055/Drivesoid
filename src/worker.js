@@ -138,15 +138,18 @@ function fatigueBase(sleep, now_ts) {
   const base_at_wake = clamp((Math.max(0, target - actual) / target) * 0.6);
 
   if (sleep.status === 'asleep' && sleep.last_sleep_started_at) {
-    const hours_asleep  = (now_ts - new Date(sleep.last_sleep_started_at).getTime()) / 3_600_000;
-    const base_at_sleep = sleep._base_at_sleep ?? base_at_wake;
-    return clamp(base_at_sleep - (base_at_sleep / target) * hours_asleep);
+    const hours_asleep     = (now_ts - new Date(sleep.last_sleep_started_at).getTime()) / 3_600_000;
+    const base_at_sleep    = sleep._base_at_sleep ?? base_at_wake;
+    const remaining_target = Math.max(1, target - (sleep.accumulated_sleep_hours ?? 0));
+    return clamp(base_at_sleep - (base_at_sleep / remaining_target) * hours_asleep);
   }
 
   if (sleep.status === 'interrupted') {
     const acc = sleep.accumulated_sleep_hours ?? 0;
-    const base_interrupted = clamp((Math.max(0, target - acc) / target) * 0.6);
-    return clamp(base_interrupted + (sleep.interrupt_fatigue_bonus ?? 0.12));
+    const base_at_interrupt = clamp((Math.max(0, target - acc) / target) * 0.6 + (sleep.interrupt_fatigue_bonus ?? 0.12));
+    if (!sleep.last_interrupted_at) return clamp(base_at_interrupt);
+    const hours_since = (now_ts - new Date(sleep.last_interrupted_at).getTime()) / 3_600_000;
+    return clamp(base_at_interrupt + clamp((hours_since - 1) / 10) * 0.25);
   }
 
   const wake_ts    = sleep.last_wake_at ? new Date(sleep.last_wake_at).getTime() : now_ts;
@@ -486,6 +489,7 @@ async function processEvents(state, now_ts) {
         break;
 
       case 'sleep_start':
+        if (state.sleep.status === 'asleep') break;
         if (state.sleep.status === 'awake') delete state.sleep.accumulated_sleep_hours;
         state.sleep._base_at_sleep        = fatigueBase(state.sleep, ev_ts);
         delete state.sleep.interrupt_fatigue_bonus;
@@ -496,12 +500,14 @@ async function processEvents(state, now_ts) {
         break;
 
       case 'sleep_end': {
+        if (state.sleep.status === 'awake') break;
         const hasActiveSegment = state.sleep.status === 'asleep' && state.sleep.last_sleep_started_at;
         const last_segment_hours = hasActiveSegment
           ? Math.max(0, ev_ts - new Date(state.sleep.last_sleep_started_at).getTime()) / 3_600_000
           : 0;
         const accumulated = state.sleep.accumulated_sleep_hours ?? 0;
-        state.sleep.last_sleep_duration_hours = accumulated + last_segment_hours || 7.5;
+        const total = accumulated + last_segment_hours;
+        state.sleep.last_sleep_duration_hours = total > 0 ? total : (state.sleep.last_sleep_duration_hours ?? 7.5);
         state.sleep.status       = 'awake';
         state.sleep.last_wake_at = ev.timestamp;
         state.sleep.estimated    = false;
