@@ -55,7 +55,7 @@ DRIVES_API_KEY=sk-...
 | `/dashboard` | GET | Live dashboard — view state, tune parameters |
 | `/internal/drives/event` | POST | Ingest a conversation event |
 | `/internal/drives/session-start` | POST | Catch-up tick at session start |
-| `/internal/drives/sleep` | POST | Sleep start/end events |
+| `/internal/drives/sleep` | POST | Sleep state changes (`sleep_start`, `sleep_end`, `sleep_interrupt`) |
 
 `/internal/*` accepts loopback connections only (127.0.0.1). `/api/*` is unrestricted.
 
