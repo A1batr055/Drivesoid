@@ -8,6 +8,9 @@ const REQUEST_TIMEOUT_MS = 15000;
 const httpModule         = API_URL.protocol === 'https:' ? require('https') : require('http');
 
 if (!MODEL) throw new Error('[drives] classifier.model must be set in drives.config.json');
+if (API_URL.protocol !== 'https:' && API_URL.hostname !== '127.0.0.1' && API_URL.hostname !== 'localhost') {
+  throw new Error('[drives] classifier.endpoint must use HTTPS (localhost HTTP is allowed for development)');
+}
 
 const VALID_LABELS = new Set([
   'affectionate',

@@ -10,8 +10,12 @@ function load() {
   if (_config) return _config;
   try {
     _config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-  } catch {
-    console.error('[drives] drives.config.json not found — copy drives.config.example.json and fill in your values.');
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      console.error('[drives] drives.config.json not found — copy drives.config.example.json and fill in your values.');
+    } else {
+      console.error('[drives] Failed to load drives.config.json:', e.message);
+    }
     process.exit(1);
   }
   const required = [

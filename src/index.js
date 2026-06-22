@@ -33,7 +33,7 @@ function getStatus() {
       return { error: true, stale: true, snapshot_age_ms: null };
     }
     const snapshot_age_ms = now - new Date(state.snapshot_at).getTime();
-    const stale = snapshot_age_ms > SNAPSHOT_MAX_AGE_MS;
+    const stale = !Number.isFinite(snapshot_age_ms) || snapshot_age_ms < 0 || snapshot_age_ms > SNAPSHOT_MAX_AGE_MS;
     if (Object.values(state.display).some(v => !Number.isFinite(v))) {
       return { error: true, stale, snapshot_age_ms };
     }

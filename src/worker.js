@@ -477,9 +477,9 @@ async function processEvents(state, now_ts) {
           if (deltas) {
             applyDeltas(state.base, deltas);
             if (calendar_type === 'intimacy') state.last_intimacy_at = ev.timestamp;
+            if (!state.processed_calendar_ids) state.processed_calendar_ids = [];
+            state.processed_calendar_ids.push(calendar_id);
           }
-          if (!state.processed_calendar_ids) state.processed_calendar_ids = [];
-          state.processed_calendar_ids.push(calendar_id);
         }
         break;
       }
@@ -621,7 +621,7 @@ function createInitialState() {
 // ── Worker tick ───────────────────────────────────────────────────────────────
 let _running = false;
 
-async function tick() {
+async function tick({ throwOnError = false } = {}) {
   if (_running) return;
   _running = true;
   try {
@@ -652,13 +652,14 @@ async function tick() {
     writeState(state);
   } catch (e) {
     console.error('[drives:worker] tick error:', e.message);
+    if (throwOnError) throw e;
   } finally {
     _running = false;
   }
 }
 
 async function handleSessionStart() {
-  await tick();
+  await tick({ throwOnError: true });
 }
 
 function init() {
