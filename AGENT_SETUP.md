@@ -180,6 +180,15 @@ Enable hooks in your Claude Code settings (`.claude/settings.json`). **Paths mus
 
 **Requirements:** Python 3 must be installed (used by both hooks). On Windows, hooks run inside Git Bash — install it from https://git-scm.com/ if not present, and use forward-slash paths. On macOS, install Python 3 via `brew install python3` if not already present.
 
+If the service port is not 3001 (set in Step 1b), prefix the hook command with `DRIVESOID_PORT=<port>`:
+```json
+"command": "DRIVESOID_PORT=3099 bash /absolute/path/to/.claude/hooks/UserPromptSubmit.sh"
+```
+On Windows (Git Bash):
+```json
+"command": "bash -c 'DRIVESOID_PORT=3099 bash /absolute/path/to/.claude/hooks/UserPromptSubmit.sh'"
+```
+
 `UserPromptSubmit` fires before each turn: it reports the user message to the classifier and injects a `[drives]` block as `additionalContext`:
 ```
 [drives]
@@ -213,13 +222,13 @@ cp hooks/codex/UserPromptSubmit.py <your-codex-hooks-dir>/
 cp hooks/codex/Stop.py             <your-codex-hooks-dir>/
 ```
 
-Register in `~/.codex/hooks.json` (use `hooks/codex/hooks.json.example` as a template — replace the path placeholders with the absolute path to your Drivesoid install):
+Register in `~/.codex/hooks.json` (use `hooks/codex/hooks.json.example` as a template — replace the path placeholders with the absolute path to your Drivesoid install). If the service port is not 3001, prefix the command with `DRIVESOID_PORT=<port>`:
 
 ```json
 {
   "hooks": {
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "python \"/path/to/drivesoid/hooks/codex/UserPromptSubmit.py\"", "timeout": 20, "statusMessage": "Loading Drivesoid state"}]}],
-    "Stop":             [{"hooks": [{"type": "command", "command": "python \"/path/to/drivesoid/hooks/codex/Stop.py\"", "timeout": 5, "statusMessage": "Reporting turn to Drivesoid"}]}]
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "DRIVESOID_PORT=3001 python \"/path/to/drivesoid/hooks/codex/UserPromptSubmit.py\"", "timeout": 20, "statusMessage": "Loading Drivesoid state"}]}],
+    "Stop":             [{"hooks": [{"type": "command", "command": "DRIVESOID_PORT=3001 python \"/path/to/drivesoid/hooks/codex/Stop.py\"", "timeout": 5, "statusMessage": "Reporting turn to Drivesoid"}]}]
   }
 }
 ```
