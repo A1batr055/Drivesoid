@@ -4,6 +4,7 @@ const path   = require('path');
 const crypto = require('crypto');
 const { readState, writeState }   = require('./state');
 const { classifyMessage }         = require('./classifier');
+const { pruneEvents }             = require('./events');
 const _cfg = require('./config').load();
 const { timezone_offset_hours: TZ_OFFSET = 8 } = _cfg;
 
@@ -237,7 +238,10 @@ function decayBaseTo(base, from_ts, to_ts) {
 
 // ── Time accumulation ─────────────────────────────────────────────────────────
 function accumulateTime(state, now_ts, from_iso) {
-  if (state.sleep?.status === 'asleep') return;
+  if (state.sleep?.status === 'asleep') {
+    state.last_time_accumulated_at = new Date(now_ts).toISOString();
+    return;
+  }
   const from_ts             = new Date(from_iso ?? state.last_time_accumulated_at).getTime();
   const last_interaction_ts = new Date(state.last_interaction_at).getTime();
   if (now_ts <= from_ts) return;
@@ -367,8 +371,8 @@ function readPendingEvents(last_id) {
   if (!last_id) return all;
   const idx = all.findIndex(e => e.event_id === last_id);
   if (idx === -1) {
-    console.error('[drives:worker] last_processed_event_id not found, reprocessing all');
-    return all;
+    console.error('[drives:worker] last_processed_event_id not found — skipping tick to avoid event replay');
+    return [];
   }
   return all.slice(idx + 1);
 }
@@ -380,7 +384,7 @@ async function processEvents(state, now_ts) {
 
   if (!pending.length) {
     decayBaseTo(state.base, cursor, now_ts);
-    state.last_time_accumulated_at = new Date(now_ts).toISOString();
+    accumulateTime(state, now_ts);
     return log;
   }
 
@@ -394,6 +398,7 @@ async function processEvents(state, now_ts) {
     if (!Number.isFinite(ev_ts)) { state.last_processed_event_id = ev.event_id; continue; }
 
     decayBaseTo(state.base, cursor, ev_ts);
+    accumulateTime(state, ev_ts);
     cursor = ev_ts;
     log.events.push(ev.type);
 
@@ -539,7 +544,7 @@ async function processEvents(state, now_ts) {
   }
 
   decayBaseTo(state.base, cursor, now_ts);
-  state.last_time_accumulated_at = new Date(now_ts).toISOString();
+  accumulateTime(state, now_ts);
   return log;
 }
 
@@ -632,9 +637,8 @@ async function tick({ throwOnError = false } = {}) {
       if (!(k in state.base)) state.base[k] = p.neutral;
     }
 
-    const _accumFrom = state.last_time_accumulated_at;
-    const eventLog   = await processEvents(state, now_ts);
-    accumulateTime(state, now_ts, _accumFrom);
+    const eventLog = await processEvents(state, now_ts);
+    pruneEvents(state.last_processed_event_id);
     checkUnansweredMilestones(state, now_ts);
     maybeFireWhim(state, now_ts);
 
