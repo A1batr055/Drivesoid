@@ -26,7 +26,10 @@ lsof -i :3001
 netstat -ano | findstr :3001
 ```
 
-If port 3001 is occupied, identify the process. If it is unrelated to Drivesoid, ask the user which port to use instead — then remember to set `server.port` in `drives.config.json` after setup.
+If port 3001 is occupied, identify the process. If it is unrelated to Drivesoid:
+- Setup must run on port 3001 (it is hardcoded). Ask the user to stop the occupying process temporarily, complete setup, then restart it.
+- After setup, set `server.port` to the user's preferred port in `drives.config.json`.
+- If the service port is not 3001, also set the `DRIVESOID_PORT` environment variable to match — the hooks use this to find the running service (default: 3001).
 
 **1c — Existing bridge or middleware**
 
@@ -118,7 +121,7 @@ pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
 ```
-Run the command that `pm2 startup` prints (it will look like `sudo env PATH=...`).
+Run the command that `pm2 startup` prints. On Linux/macOS it looks like `sudo env PATH=...`; on Windows it generates a different command — follow whatever is printed.
 
 **Useful commands:**
 ```
@@ -189,15 +192,7 @@ dejection 0.09  irritability 0.14
 
 `Stop` fires after each completed AI turn and records the assistant response as an event.
 
-Add the drives state block to your workspace `CLAUDE.md` so the AI persona understands what the `[drives]` block means. If the workspace already has other instructions, paste only the Drivesoid section and wrap it with markers so future updates are easy to find and replace:
-
-```
-<!-- drivesoid-start -->
-(paste contents of CLAUDE.md here)
-<!-- drivesoid-end -->
-```
-
-Do **not** replace the user's entire `CLAUDE.md` — only insert the Drivesoid section.
+Add the drives state block to your workspace `CLAUDE.md` so the AI persona understands what the `[drives]` block means. If the workspace already has other instructions, paste only the contents of `CLAUDE.md` from the Drivesoid install directory — do **not** replace the user's entire `CLAUDE.md`. The Drivesoid section starts with the `# Drives state` heading; on future updates, find and replace only that heading and everything under it.
 
 **Option B — Custom bridge / middleware**
 
@@ -252,6 +247,7 @@ Tell the user:
 ```
 cd <install-dir>
 git pull
+npm install          # only needed if package.json changed; safe to run every time
 pm2 restart drivesoid   # or: stop the process and run npm start again
 ```
 
@@ -264,8 +260,8 @@ pm2 restart drivesoid   # or: stop the process and run npm start again
 | `.env` (API key) | No — gitignored |
 | Source files and docs | Yes — updated |
 
-Port settings and all personal data are preserved automatically.
+Port settings and all personal data are preserved automatically. If the service runs on a non-default port, ensure `DRIVESOID_PORT` is set to match in the environment where the hooks run (see Step 1b).
 
 **State migration:** if the update adds a new dimension, the service initialises missing keys in the existing state file on the first tick. No manual intervention needed.
 
-**CLAUDE.md in your workspace:** `git pull` does not touch your workspace — only the Drivesoid install directory. If you wrapped the Drivesoid section with `<!-- drivesoid-start -->` / `<!-- drivesoid-end -->` markers (see Step 6b), replace only that block with the contents of the updated `CLAUDE.md`. Do not overwrite your entire workspace `CLAUDE.md`.
+**CLAUDE.md in your workspace:** `git pull` does not touch your workspace — only the Drivesoid install directory. To update, find the `# Drives state` section in your workspace `CLAUDE.md` and replace it with the contents of the updated `<install-dir>/CLAUDE.md`. Do not overwrite your entire workspace `CLAUDE.md`.
