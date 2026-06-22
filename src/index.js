@@ -42,7 +42,7 @@ function getStatus() {
     const groups = {
       activation: avg(d.vitality, 1 - d.fatigue),
       attachment: avg(d.longing, d.intimacy, d.possessiveness, d.lust),
-      threat:     avg(d.jealousy, d.anxiety, d.protectiveness),
+      threat:     d.fear > 0 ? avg(d.jealousy, d.anxiety, d.protectiveness, d.fear) : avg(d.jealousy, d.anxiety, d.protectiveness),
       reward:     avg(d.contentment, d.elation, d.seeking, d.play),
       negative:   avg(d.dejection, d.irritability),
     };

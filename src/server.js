@@ -462,18 +462,18 @@ if (needsSetup()) {
 
 </div>
 <script>
-const DIMS_ORDER = ['vitality','longing','intimacy','possessiveness','lust','jealousy','anxiety','protectiveness','contentment','elation','seeking','play','dejection','irritability','fatigue'];
+const DIMS_ORDER = ['vitality','longing','intimacy','possessiveness','lust','jealousy','anxiety','protectiveness','fear','contentment','elation','seeking','play','dejection','irritability','fatigue'];
 const DIM_GROUPS = [
   { key: 'activation', dims: ['vitality','fatigue'] },
   { key: 'attachment', dims: ['longing','intimacy','possessiveness','lust'] },
-  { key: 'threat',     dims: ['jealousy','anxiety','protectiveness'] },
+  { key: 'threat',     dims: ['jealousy','anxiety','protectiveness','fear'] },
   { key: 'reward',     dims: ['contentment','elation','seeking','play'] },
   { key: 'negative',   dims: ['dejection','irritability'] },
 ];
-const DIM_CLASS = { vitality:'pos', fatigue:'fat', longing:'att', intimacy:'att', possessiveness:'att', lust:'att', jealousy:'thr', anxiety:'thr', protectiveness:'thr', contentment:'rew', elation:'rew', seeking:'rew', play:'rew', dejection:'neg', irritability:'neg' };
+const DIM_CLASS = { vitality:'pos', fatigue:'fat', longing:'att', intimacy:'att', possessiveness:'att', lust:'att', jealousy:'thr', anxiety:'thr', protectiveness:'thr', fear:'thr', contentment:'rew', elation:'rew', seeking:'rew', play:'rew', dejection:'neg', irritability:'neg' };
 const DIM_LABELS = {
-  en: { vitality:'Vitality', longing:'Longing', intimacy:'Intimacy', possessiveness:'Possessiveness', lust:'Lust', jealousy:'Jealousy', anxiety:'Anxiety', protectiveness:'Protectiveness', contentment:'Contentment', elation:'Elation', seeking:'Seeking', play:'Play', dejection:'Dejection', irritability:'Irritability', fatigue:'Fatigue' },
-  zh: { vitality:'活力', longing:'思念', intimacy:'亲密', possessiveness:'占有', lust:'欲望', jealousy:'嫉妒', anxiety:'焦虑', protectiveness:'保护欲', contentment:'满足', elation:'愉悦', seeking:'探索', play:'玩心', dejection:'低落', irritability:'烦躁', fatigue:'疲惫' },
+  en: { vitality:'Vitality', longing:'Longing', intimacy:'Intimacy', possessiveness:'Possessiveness', lust:'Lust', jealousy:'Jealousy', anxiety:'Anxiety', protectiveness:'Protectiveness', fear:'Fear', contentment:'Contentment', elation:'Elation', seeking:'Seeking', play:'Play', dejection:'Dejection', irritability:'Irritability', fatigue:'Fatigue' },
+  zh: { vitality:'活力', longing:'思念', intimacy:'亲密', possessiveness:'占有', lust:'欲望', jealousy:'嫉妒', anxiety:'焦虑', protectiveness:'保护欲', fear:'恐惧', contentment:'满足', elation:'愉悦', seeking:'探索', play:'玩心', dejection:'低落', irritability:'烦躁', fatigue:'疲惫' },
 };
 const GROUP_LABELS = {
   en: { activation:'Activation', attachment:'Attachment', threat:'Threat', reward:'Reward', negative:'Negative' },
@@ -652,13 +652,14 @@ setInterval(loadStatus, 15000);
       '[drives]',
       `vitality ${f('vitality')}  fatigue ${f('fatigue')}`,
       `longing ${f('longing')}  intimacy ${f('intimacy')}  possessiveness ${f('possessiveness')}  lust ${f('lust')}`,
-      `jealousy ${f('jealousy')}  anxiety ${f('anxiety')}  protectiveness ${f('protectiveness')}`,
+      `jealousy ${f('jealousy')}  anxiety ${f('anxiety')}  protectiveness ${f('protectiveness')}  fear ${f('fear')}`,
       `contentment ${f('contentment')}  elation ${f('elation')}  seeking ${f('seeking')}  play ${f('play')}`,
       `dejection ${f('dejection')}  irritability ${f('irritability')}`,
     ].join('\n');
     res.set('Content-Type', 'text/plain').send(block);
   });
 
+  app.get('/', (req, res) => res.redirect('/dashboard'));
   app.get('/dashboard', (req, res) => res.send(DASHBOARD_HTML));
 
   app.get('/api/dashboard/config', loopbackOnly, (req, res) => {

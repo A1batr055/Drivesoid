@@ -30,6 +30,7 @@
     "seeking":        { "neutral": 0.25, "floor": 0.12 },
     "play":           { "neutral": 0.25, "floor": 0.03 },
     "dejection":      { "neutral": 0.15, "floor": 0.00 },
-    "irritability":   { "neutral": 0.15, "floor": 0.00 }
+    "irritability":   { "neutral": 0.15, "floor": 0.00 },
+    "fear":           { "neutral": 0.00, "floor": 0.00 }
   }
 }

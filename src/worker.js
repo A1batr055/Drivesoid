@@ -31,13 +31,14 @@ const DIMS = {
   play:           { neutral: 0.25, tau: 3,  peak: 19, amp: 0.7, width: 3.5 },
   dejection:      { neutral: 0.15, tau: 8,  peak: 8,  amp: 0.5, width: 4   },
   irritability:   { neutral: 0.15, tau: 3,  peak: 16, amp: 0.6, width: 3.5 },
+  fear:           { neutral: 0,    tau: 1,  peak: 0,  amp: 0,   width: 1   },
 };
 
 const DIM_FLOOR = {
   vitality: 0.08, longing: 0.15, intimacy: 0.06, possessiveness: 0.05, lust: 0.05,
   jealousy: 0,    anxiety: 0.02, protectiveness: 0.05,
   contentment: 0.06, elation: 0.02, seeking: 0.12, play: 0.03,
-  dejection: 0,   irritability: 0,
+  dejection: 0,   irritability: 0, fear: 0,
 };
 
 // Apply optional dimension overrides from config
@@ -56,10 +57,10 @@ const FATIGUE_C = { peak: 3, amp: 0.8, width: 10 };
 
 // ── Content label deltas ──────────────────────────────────────────────────────
 const LABEL_DELTAS = {
-  affectionate:       { intimacy: +0.20, contentment: +0.15, anxiety: -0.18, lust: +0.12, longing: -0.10 },
+  affectionate:       { intimacy: +0.20, contentment: +0.15, anxiety: -0.18, lust: +0.12, longing: -0.10, fear: -0.08 },
   playful:            { play: +0.20, elation: +0.18, contentment: +0.12, seeking: +0.10, irritability: -0.10, lust: +0.10 },
   vulnerable:         { intimacy: +0.25, protectiveness: +0.20, contentment: +0.12, anxiety: -0.10, longing: -0.08 },
-  reassuring:         { anxiety: -0.25, jealousy: -0.20, contentment: +0.15, intimacy: +0.15 },
+  reassuring:         { anxiety: -0.25, jealousy: -0.20, contentment: +0.15, intimacy: +0.15, fear: -0.15 },
   cold:               { anxiety: +0.15, dejection: +0.12, longing: +0.10, intimacy: -0.10 },
   conflict:           { anxiety: +0.20, irritability: +0.15, dejection: +0.15, possessiveness: +0.18, lust: +0.10, intimacy: -0.15, contentment: -0.15 },
   distant:            { anxiety: +0.12, dejection: +0.10, longing: +0.12, intimacy: -0.08 },
@@ -68,6 +69,10 @@ const LABEL_DELTAS = {
   intimate_event:     { lust: +0.25, intimacy: +0.18 },
   neutral:            { anxiety: -0.05, longing: -0.04, contentment: +0.04 },
   hostile:            { dejection: +0.22, anxiety: +0.18, irritability: +0.12, intimacy: -0.22, contentment: -0.18 },
+  fear_separation:    { fear: +0.20, longing: +0.15, possessiveness: +0.12, anxiety: +0.15, protectiveness: +0.10, dejection: +0.10, irritability: +0.08 },
+  fear_death:         { fear: +0.35, anxiety: +0.30, irritability: +0.20, contentment: -0.12, play: -0.15, elation: -0.10 },
+  fear_concern:       { fear: +0.28, longing: +0.12, possessiveness: +0.15, anxiety: +0.20, protectiveness: +0.25, contentment: -0.10 },
+  fear_general:       { fear: +0.20, anxiety: +0.10 },
 };
 
 const MSG_STRUCTURAL = {
@@ -76,7 +81,7 @@ const MSG_STRUCTURAL = {
 };
 const MSG_ANXIETY_COMP = -0.075;
 const MSG_IRRIT_COMP   = -0.060;
-const NEG_LABELS = new Set(['cold', 'conflict', 'distant', 'hostile']);
+const NEG_LABELS = new Set(['cold', 'conflict', 'distant', 'hostile', 'fear_separation', 'fear_death', 'fear_concern', 'fear_general']);
 
 const MSG_QUICK_REPLY = { contentment: +0.12, elation: +0.10, anxiety: -0.10 };
 const MSG_HOT_CONV    = { contentment: +0.15, play: +0.12, elation: +0.10, longing: -0.20 };
@@ -148,7 +153,7 @@ function noise(sigma = 0.02) {
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * Math.random()) * sigma;
 }
 
-const NEG_DIMS = new Set(['dejection', 'irritability', 'anxiety']);
+const NEG_DIMS = new Set(['dejection', 'irritability', 'anxiety', 'fear']);
 
 function applyDeltas(base, deltas) {
   for (const [k, d] of Object.entries(deltas)) {
@@ -177,7 +182,7 @@ function buildDisplay(state, now_ts) {
 
   const af  = clamp(d.vitality * (1 - d.fatigue));
   const POS = ['longing','intimacy','possessiveness','lust','contentment','elation','seeking','play','protectiveness','jealousy'];
-  const NEG = ['irritability','dejection','anxiety'];
+  const NEG = ['irritability','dejection','anxiety','fear'];
   for (const k of POS) d[k] = clamp(d[k] * (0.5 + 0.7 * af));
   for (const k of NEG) d[k] = clamp(d[k] * (1.4 - 0.6 * af));
 
@@ -196,6 +201,11 @@ function buildDisplay(state, now_ts) {
 
   const a_amp = 1 + 0.3 * d.anxiety;
   for (const k of ['intimacy','lust','longing','possessiveness']) d[k] = clamp(d[k] * a_amp);
+
+  if (d.fear > 0.1) {
+    const damp = 1 - 0.3 * d.fear;
+    for (const k of ['contentment','elation','play','seeking','lust']) d[k] = clamp(d[k] * damp);
+  }
 
   if (state.active_whim && new Date(state.active_whim.expires_at).getTime() > now_ts) {
     for (const [k, delta] of Object.entries(state.active_whim.deltas)) {
@@ -336,6 +346,8 @@ function maybeFireWhim(state, now_ts) {
   };
 }
 
+const FEAR_LABEL_CAP = 0.60;
+
 // ── Event processing ──────────────────────────────────────────────────────────
 function readPendingEvents(last_id) {
   let raw;
@@ -383,7 +395,7 @@ async function processEvents(state, now_ts) {
         applyDeltas(state.base, MSG_STRUCTURAL);
 
         if (!state.last_segment || state.last_segment.status === 'summarized') {
-          state.last_segment = { id: crypto.randomUUID(), started_at: ev.timestamp, last_message_at: ev.timestamp, status: 'open', messages: 1 };
+          state.last_segment = { id: crypto.randomUUID(), started_at: ev.timestamp, last_message_at: ev.timestamp, status: 'open', messages: 1, fear_label_applied: 0 };
         } else {
           state.last_segment.last_message_at = ev.timestamp;
           state.last_segment.messages = (state.last_segment.messages || 0) + 1;
@@ -397,6 +409,13 @@ async function processEvents(state, now_ts) {
             const scaled = {};
             for (const [k, v] of Object.entries(raw)) {
               scaled[k] = clamp(v * confidence, -0.25, 0.25);
+            }
+            if (scaled.fear != null && label.startsWith('fear_')) {
+              const seg     = state.last_segment;
+              const already = seg.fear_label_applied || 0;
+              const allowed = Math.max(0, Math.min(scaled.fear, FEAR_LABEL_CAP - already));
+              seg.fear_label_applied = already + allowed;
+              scaled.fear = allowed;
             }
             applyDeltas(state.base, scaled);
 
@@ -426,7 +445,7 @@ async function processEvents(state, now_ts) {
           milestones_applied: [],
         };
         if (!state.last_segment || state.last_segment.status === 'summarized') {
-          state.last_segment = { id: crypto.randomUUID(), started_at: ev.timestamp, last_message_at: ev.timestamp, status: 'open', messages: 1 };
+          state.last_segment = { id: crypto.randomUUID(), started_at: ev.timestamp, last_message_at: ev.timestamp, status: 'open', messages: 1, fear_label_applied: 0 };
         } else {
           state.last_segment.last_message_at = ev.timestamp;
           state.last_segment.messages = (state.last_segment.messages || 0) + 1;
@@ -552,7 +571,7 @@ function createInitialState() {
     last_time_accumulated_at: iso,
     last_interaction_at:      iso,
     unanswered_thread:        null,
-    last_segment:             { id: crypto.randomUUID(), started_at: iso, last_message_at: iso, status: 'open', messages: 0 },
+    last_segment:             { id: crypto.randomUUID(), started_at: iso, last_message_at: iso, status: 'open', messages: 0, fear_label_applied: 0 },
     processed_calendar_ids:   [],
     time_episode:             null,
     active_whim:              null,
@@ -573,6 +592,9 @@ async function tick() {
     const now_ts = Date.now();
     let state    = readState();
     if (!state) state = createInitialState();
+    for (const [k, p] of Object.entries(DIMS)) {
+      if (!(k in state.base)) state.base[k] = p.neutral;
+    }
 
     const _accumFrom = state.last_time_accumulated_at;
     const eventLog   = await processEvents(state, now_ts);

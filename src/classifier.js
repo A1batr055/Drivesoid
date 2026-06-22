@@ -22,6 +22,10 @@ const VALID_LABELS = new Set([
   'intimate_event',
   'neutral',
   'hostile',
+  'fear_separation',
+  'fear_death',
+  'fear_concern',
+  'fear_general',
 ]);
 
 const SYSTEM_PROMPT = `You are an emotion classifier. Analyze the conversation context and choose the single best label for the [CLASSIFY] message. Output JSON: {"label":"<label>","confidence":<0 to 1>}
@@ -39,12 +43,17 @@ Labels:
 - intimate_event: actively engaged in an intimate interaction right now
 - neutral: ordinary everyday response, no notable emotional tone, normal online presence ("ok", "sure", "got it")
 - hostile: one-sided attack, mockery, or harsh words directed at the other person (distinct from conflict's mutual nature)
+- fear_separation: expressing fear of separation, fear of the other person leaving or being absent
+- fear_death: referencing fear of death — one's own, another's, suicide, serious accident, or life-threatening situations
+- fear_concern: worrying about something bad happening to the other person, wanting to protect them from danger or hardship
+- fear_general: other fears or fright that don't fit the above categories
 
 Rules:
 - Output JSON only, no other content
 - Classify only the [CLASSIFY] message; context is for reference only
 - confidence reflects certainty; can be as low as 0.4 when unsure
-- When the message is plain and unremarkable, use neutral`;
+- When the message is plain and unremarkable, use neutral
+- fear_* labels take priority over struggling when the core emotion is fear rather than stress`;
 
 function createError(message, transient) {
   const error     = new Error(message);

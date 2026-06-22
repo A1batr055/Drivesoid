@@ -8,7 +8,7 @@ An emotional drive system for AI personas. Tracks 15 psychological dimensions (a
 
 Drivesoid runs as a lightweight HTTP sidecar alongside your AI bridge. Your bridge reports conversation events; Drivesoid maintains an emotional state that your AI can read and incorporate into its responses.
 
-**Dimensions tracked:** vitality, fatigue, longing, intimacy, possessiveness, lust, jealousy, anxiety, protectiveness, contentment, elation, seeking, play, dejection, irritability
+**Dimensions tracked:** vitality, fatigue, longing, intimacy, possessiveness, lust, jealousy, anxiety, protectiveness, fear, contentment, elation, seeking, play, dejection, irritability
 
 ## Quick start
 
@@ -58,6 +58,29 @@ DRIVES_API_KEY=sk-...
 | `/internal/drives/sleep` | POST | Sleep start/end events |
 
 `/internal/*` accepts loopback connections only (127.0.0.1). `/api/*` is unrestricted.
+
+## Classifier labels
+
+Each user message is classified into one of these labels, which drive dimension changes:
+
+| Label | When it applies |
+|---|---|
+| `affectionate` | warm, loving, expressing care |
+| `playful` | teasing, joking, playful banter |
+| `vulnerable` | expressing vulnerability or emotional fragility |
+| `reassuring` | comforting, affirming, offering support |
+| `intimate_reference` | referencing physical intimacy or the body |
+| `intimate_event` | actively engaged in an intimate interaction |
+| `struggling` | stress, exhaustion, feeling unable to cope |
+| `cold` | emotionally withdrawn, detached, terse |
+| `distant` | distracted, disengaged, doesn't want to talk |
+| `conflict` | genuine mutual argument, emotional escalation |
+| `hostile` | one-sided attack or harsh words |
+| `fear_separation` | fear of the other person leaving or being absent |
+| `fear_death` | fear of death, suicide, or life-threatening situations |
+| `fear_concern` | worrying about something bad happening to the other person |
+| `fear_general` | other fears not covered above |
+| `neutral` | ordinary response, no notable emotional tone |
 
 ## Reset
 

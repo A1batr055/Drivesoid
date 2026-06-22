@@ -182,7 +182,7 @@ Enable hooks in your Claude Code settings (`.claude/settings.json`). **Paths mus
 [drives]
 vitality 0.62  fatigue 0.18
 longing 0.41  intimacy 0.68  possessiveness 0.33  lust 0.25
-jealousy 0.10  anxiety 0.22  protectiveness 0.51
+jealousy 0.10  anxiety 0.22  protectiveness 0.51  fear 0.00
 contentment 0.60  elation 0.38  seeking 0.47  play 0.44
 dejection 0.09  irritability 0.14
 ```

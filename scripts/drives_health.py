@@ -10,14 +10,14 @@ HISTORY_PATH = Path(__file__).parent.parent / 'data' / 'drives-history.jsonl'
 DIMS = [
     'vitality', 'fatigue',
     'longing', 'intimacy', 'possessiveness', 'lust',
-    'jealousy', 'anxiety', 'protectiveness',
+    'jealousy', 'anxiety', 'protectiveness', 'fear',
     'contentment', 'elation', 'seeking', 'play',
     'dejection', 'irritability',
 ]
 GROUPS = {
     'activation': ['vitality', 'fatigue'],
     'attachment': ['longing', 'intimacy', 'possessiveness', 'lust'],
-    'threat':     ['jealousy', 'anxiety', 'protectiveness'],
+    'threat':     ['jealousy', 'anxiety', 'protectiveness', 'fear'],
     'reward':     ['contentment', 'elation', 'seeking', 'play'],
     'negative':   ['dejection', 'irritability'],
 }
