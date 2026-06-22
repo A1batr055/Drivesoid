@@ -189,7 +189,15 @@ dejection 0.09  irritability 0.14
 
 `Stop` fires after each completed AI turn and records the assistant response as an event.
 
-Add the `CLAUDE.md` file from this repo to your workspace (or paste its contents into your existing `CLAUDE.md`) so the AI persona understands what the `[drives]` block means.
+Add the drives state block to your workspace `CLAUDE.md` so the AI persona understands what the `[drives]` block means. If the workspace already has other instructions, paste only the Drivesoid section and wrap it with markers so future updates are easy to find and replace:
+
+```
+<!-- drivesoid-start -->
+(paste contents of CLAUDE.md here)
+<!-- drivesoid-end -->
+```
+
+Do **not** replace the user's entire `CLAUDE.md` — only insert the Drivesoid section.
 
 **Option B — Custom bridge / middleware**
 
@@ -236,3 +244,28 @@ Tell the user:
 > You can view my emotional state and tune parameters anytime at:
 > **http://127.0.0.1:PORT/dashboard**
 > (replace PORT with the port number, default 3001)"
+
+---
+
+## Updating an existing installation
+
+```
+cd <install-dir>
+git pull
+pm2 restart drivesoid   # or: stop the process and run npm start again
+```
+
+**What git pull does and does not touch:**
+
+| File | Touched by git pull? |
+|---|---|
+| `drives.config.json` (port, persona, API key env) | No — gitignored |
+| `data/` (state, event log, history) | No — gitignored |
+| `.env` (API key) | No — gitignored |
+| Source files and docs | Yes — updated |
+
+Port settings and all personal data are preserved automatically.
+
+**State migration:** if the update adds a new dimension, the service initialises missing keys in the existing state file on the first tick. No manual intervention needed.
+
+**CLAUDE.md in your workspace:** `git pull` does not touch your workspace — only the Drivesoid install directory. If you wrapped the Drivesoid section with `<!-- drivesoid-start -->` / `<!-- drivesoid-end -->` markers (see Step 6b), replace only that block with the contents of the updated `CLAUDE.md`. Do not overwrite your entire workspace `CLAUDE.md`.
