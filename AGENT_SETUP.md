@@ -148,7 +148,8 @@ Call these endpoints from your AI bridge so Drivesoid can track what's happening
 | AI sends a reply | `POST /internal/drives/event` | `{"type":"msg_assistant","payload":{"message_id":"<id>"}}` |
 | Quick reply detected | `POST /internal/drives/event` | `{"type":"msg_quick_reply"}` |
 | User goes to sleep | `POST /internal/drives/sleep` | `{"type":"sleep_start"}` |
-| User wakes up | `POST /internal/drives/sleep` | `{"type":"sleep_end"}` |
+| User wakes up (morning) | `POST /internal/drives/sleep` | `{"type":"sleep_end"}` |
+| User briefly woken mid-sleep | `POST /internal/drives/sleep` | `{"type":"sleep_interrupt"}` |
 
 The `context` array in `msg_user` is optional but improves classification accuracy.
 Format: `[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]`
@@ -232,6 +233,40 @@ If the service port is not 3001, prefix each command with `DRIVESOID_PORT=<port>
 After saving, restart Codex and run `/hooks` to review and trust both commands.
 
 The `UserPromptSubmit` adapter also handles service lifecycle: if Drivesoid is not running (e.g. after a reboot), it starts `node src/server.js` in the background automatically before the turn proceeds.
+
+**Option D — MCP server**
+
+For agents that use the Model Context Protocol (e.g. Claude with MCP tools configured), Drivesoid ships a stdio MCP server that wraps all endpoints as callable tools.
+
+Start the MCP server (Drivesoid HTTP service must already be running):
+```
+npm run mcp
+```
+
+Tools exposed:
+
+| Tool | Description |
+|---|---|
+| `drives_sleep` | Report sleep state change (`sleep_start`, `sleep_end`, `sleep_interrupt`) |
+| `drives_event` | Report any drives event (`msg_user`, `msg_assistant`, `sex_end`, etc.) |
+| `drives_context` | Fetch the current drives state block as plain text |
+
+Configure in Claude Code (`.claude/settings.json` in your workspace or `~/.claude/settings.json` globally):
+```json
+{
+  "mcpServers": {
+    "drivesoid": {
+      "command": "node",
+      "args": ["/absolute/path/to/Drivesoid/src/mcp-server.js"],
+      "env": { "DRIVESOID_PORT": "3001" }
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/Drivesoid` with the actual install path. If the service port is not 3001, update `DRIVESOID_PORT` to match.
+
+The AI agent is then responsible for calling `drives_sleep` with the appropriate type when sleep state changes, and `drives_event` to report conversation events. The `drives_context` tool can be called at the start of a session to read current state.
 
 ---
 

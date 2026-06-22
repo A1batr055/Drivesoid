@@ -717,8 +717,9 @@ setInterval(loadStatus, 15000);
 
   app.post('/internal/drives/sleep', loopbackOnly, async (req, res) => {
     const { type } = req.body || {};
-    if (type !== 'sleep_start' && type !== 'sleep_end') {
-      return res.status(400).json({ error: 'type must be sleep_start or sleep_end' });
+    const SLEEP_TYPES = new Set(['sleep_start', 'sleep_end', 'sleep_interrupt']);
+    if (!SLEEP_TYPES.has(type)) {
+      return res.status(400).json({ error: 'type must be sleep_start, sleep_end, or sleep_interrupt' });
     }
     try {
       await drives.appendEvent(type);

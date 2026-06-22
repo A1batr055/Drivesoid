@@ -143,6 +143,12 @@ function fatigueBase(sleep, now_ts) {
     return clamp(base_at_sleep - (base_at_sleep / target) * hours_asleep);
   }
 
+  if (sleep.status === 'interrupted') {
+    const acc = sleep.accumulated_sleep_hours ?? 0;
+    const base_interrupted = clamp((Math.max(0, target - acc) / target) * 0.6);
+    return clamp(base_interrupted + (sleep.interrupt_fatigue_bonus ?? 0.12));
+  }
+
   const wake_ts    = sleep.last_wake_at ? new Date(sleep.last_wake_at).getTime() : now_ts;
   const hours_awake = (now_ts - wake_ts) / 3_600_000;
   return clamp(base_at_wake + clamp((hours_awake - 4) / 14) * 0.4);
@@ -480,7 +486,9 @@ async function processEvents(state, now_ts) {
         break;
 
       case 'sleep_start':
+        if (state.sleep.status === 'awake') delete state.sleep.accumulated_sleep_hours;
         state.sleep._base_at_sleep        = fatigueBase(state.sleep, ev_ts);
+        delete state.sleep.interrupt_fatigue_bonus;
         state.sleep.status                = 'asleep';
         state.sleep.last_sleep_started_at = ev.timestamp;
         state.unanswered_thread           = null;
@@ -488,15 +496,35 @@ async function processEvents(state, now_ts) {
         break;
 
       case 'sleep_end': {
-        const start_ts = state.sleep.last_sleep_started_at
-          ? new Date(state.sleep.last_sleep_started_at).getTime()
-          : ev_ts - 7.5 * 3_600_000;
-        state.sleep.last_sleep_duration_hours = (ev_ts - start_ts) / 3_600_000;
+        const hasActiveSegment = state.sleep.status === 'asleep' && state.sleep.last_sleep_started_at;
+        const last_segment_hours = hasActiveSegment
+          ? Math.max(0, ev_ts - new Date(state.sleep.last_sleep_started_at).getTime()) / 3_600_000
+          : 0;
+        const accumulated = state.sleep.accumulated_sleep_hours ?? 0;
+        state.sleep.last_sleep_duration_hours = accumulated + last_segment_hours || 7.5;
         state.sleep.status       = 'awake';
         state.sleep.last_wake_at = ev.timestamp;
         state.sleep.estimated    = false;
         delete state.sleep._base_at_sleep;
+        delete state.sleep.accumulated_sleep_hours;
+        delete state.sleep.interrupt_fatigue_bonus;
         state.unanswered_thread  = null;
+        break;
+      }
+
+      case 'sleep_interrupt': {
+        if (state.sleep.status !== 'asleep') break;
+        const seg_start = state.sleep.last_sleep_started_at
+          ? new Date(state.sleep.last_sleep_started_at).getTime()
+          : ev_ts;
+        state.sleep.accumulated_sleep_hours = (state.sleep.accumulated_sleep_hours ?? 0) + Math.max(0, ev_ts - seg_start) / 3_600_000;
+        delete state.sleep.last_sleep_started_at;
+        state.sleep.status              = 'interrupted';
+        state.sleep.last_interrupted_at = ev.timestamp;
+        state.sleep.interrupt_fatigue_bonus = 0.12;
+        applyDeltas(state.base, { irritability: 0.12, vitality: -0.10 });
+        state.unanswered_thread         = null;
+        delete state.active_whim;
         break;
       }
     }
