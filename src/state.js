@@ -9,8 +9,9 @@ const TMP_PATH   = STATE_PATH + '.tmp';
 function readState() {
   try {
     return JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
-  } catch {
-    return null;
+  } catch (e) {
+    if (e.code === 'ENOENT') return null;
+    throw e;
   }
 }
 
@@ -18,9 +19,12 @@ function writeState(obj) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const json = JSON.stringify(obj, null, 2);
   const fd   = fs.openSync(TMP_PATH, 'w');
-  fs.writeSync(fd, json, 0, 'utf8');
-  fs.fsyncSync(fd);
-  fs.closeSync(fd);
+  try {
+    fs.writeSync(fd, json, 0, 'utf8');
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
   for (let i = 0; i < 3; i++) {
     try {
       fs.renameSync(TMP_PATH, STATE_PATH);

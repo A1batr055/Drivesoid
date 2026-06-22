@@ -3,6 +3,7 @@ const { McpServer }          = require('@modelcontextprotocol/sdk/server/mcp.js'
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
 const { z }  = require('zod');
 const http   = require('http');
+const { version } = require('../package.json');
 
 const PORT    = parseInt(process.env.DRIVESOID_PORT || '3001', 10);
 const TIMEOUT = 5_000;
@@ -41,7 +42,7 @@ function toolResult(r) {
   return { content: [{ type: 'text', text }], ...(r.status >= 400 ? { isError: true } : {}) };
 }
 
-const server = new McpServer({ name: 'drivesoid', version: '1.0.0' });
+const server = new McpServer({ name: 'drivesoid', version });
 
 server.tool(
   'drives_sleep',

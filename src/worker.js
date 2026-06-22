@@ -591,7 +591,9 @@ function createInitialState() {
 
   const local_now = new Date(now_ts + TZ_OFFSET * 3_600_000);
   local_now.setUTCHours(7, 0, 0, 0);
-  const last_wake_at = new Date(local_now.getTime() - TZ_OFFSET * 3_600_000).toISOString();
+  let wake_ts = local_now.getTime() - TZ_OFFSET * 3_600_000;
+  if (wake_ts > now_ts) wake_ts -= 86_400_000;
+  const last_wake_at = new Date(wake_ts).toISOString();
 
   const iso  = now.toISOString();
   const base = {};
