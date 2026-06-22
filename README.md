@@ -2,7 +2,7 @@
 
 [中文说明](README.zh.md)
 
-An emotional drive system for AI personas. Tracks 15 psychological dimensions (attachment, threat, reward, etc.) that evolve in real time based on conversations, sleep cycles, and calendar events.
+An emotional drive system for AI personas. Tracks 16 psychological dimensions (attachment, threat, reward, etc.) that evolve in real time based on conversations, sleep cycles, and calendar events.
 
 ## How it works
 
