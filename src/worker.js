@@ -647,8 +647,8 @@ async function tick({ throwOnError = false } = {}) {
     state.state_updated_at = iso;
     if (state.display) state.prev_display = state.display;
     state.display      = buildDisplay(state, now_ts);
-    appendHistory(state, now_ts, eventLog);
     writeState(state);
+    appendHistory(state, now_ts, eventLog);
   } catch (e) {
     console.error('[drives:worker] tick error:', e.message);
     if (throwOnError) throw e;
