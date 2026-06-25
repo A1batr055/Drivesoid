@@ -6,3 +6,4 @@ drives.config.json
 !.env.example
 *.log
 .claude/
+lust_plan_review_drivesoid.md

@@ -39,6 +39,6 @@ Your sleep status is one of `awake`, `asleep`, or `interrupted`.
 
 `frustration` 0–3. Accumulates on rejection, decays slowly. Raises `irritability` and `lust` display, lowers `contentment`.
 
-`pending_count` unsatisfied lust intentions queued.
+`pending_count` unsatisfied lust intentions queued. `rejection_streak` consecutive rejections since last satisfaction.
 
 `last_intention_added_at` ISO timestamp of the most recent intention added; null if none. Changes when a new intention rolls in — integrators can detect this to trigger an unprompted advance in conversation.

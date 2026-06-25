@@ -84,7 +84,7 @@ Each user message is classified into one of these labels, which drive dimension 
 
 ## Lust intention & frustration
 
-Three event types track intimate dynamics:
+Four event types track intimate dynamics:
 
 | Event | Effect |
 |---|---|
