@@ -47,6 +47,19 @@ npm start
 | `fear_general` | 其他类型的恐惧 |
 | `neutral` | 普通回应，无明显情绪色彩 |
 
+## 欲望意图与挫败感
+
+三个事件类型用于追踪亲密动态：
+
+| 事件 | 效果 |
+|---|---|
+| `sex_end` | 满足最早的 pending intention；降低挫败感；清零拒绝连击 |
+| `self_relief` | 满足最早的 pending intention；降低挫败感 |
+| `lust_rejection_hard` | 增加挫败感（×连击倍率）；连击计数 +1 |
+| `lust_rejection_soft` | 较小幅度增加挫败感（×连击倍率）；连击计数 +1 |
+
+`/api/drives/status` 同时返回 `frustration`（0–3）、`pending_count`、`rejection_streak` 和 `last_intention_added_at`。当 `display.lust > 0.70` 时自动 roll intention，4 小时内最多一次，触发概率 30%。
+
 ## 重置
 
 清除配置与数据，重新开始：

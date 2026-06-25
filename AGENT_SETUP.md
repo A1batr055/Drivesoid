@@ -144,6 +144,10 @@ Call these endpoints from your AI bridge so Drivesoid can track what's happening
 | User goes to sleep | `POST /internal/drives/sleep` | `{"type":"sleep_start"}` |
 | User wakes up (morning) | `POST /internal/drives/sleep` | `{"type":"sleep_end"}` |
 | User briefly woken mid-sleep | `POST /internal/drives/sleep` | `{"type":"sleep_interrupt"}` |
+| Intimate encounter ends | `POST /internal/drives/event` | `{"type":"sex_end"}` |
+| Self-relief | `POST /internal/drives/event` | `{"type":"self_relief"}` |
+| Lust rejected (strong) | `POST /internal/drives/event` | `{"type":"lust_rejection_hard"}` |
+| Lust rejected (mild) | `POST /internal/drives/event` | `{"type":"lust_rejection_soft"}` |
 
 The `context` array in `msg_user` is optional but improves classification accuracy.
 Format: `[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]`

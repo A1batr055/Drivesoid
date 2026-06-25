@@ -82,6 +82,19 @@ Each user message is classified into one of these labels, which drive dimension 
 | `fear_general` | other fears not covered above |
 | `neutral` | ordinary response, no notable emotional tone |
 
+## Lust intention & frustration
+
+Three event types track intimate dynamics:
+
+| Event | Effect |
+|---|---|
+| `sex_end` | Satisfies oldest pending intention; reduces frustration; clears rejection streak |
+| `self_relief` | Satisfies oldest pending intention; reduces frustration |
+| `lust_rejection_hard` | Increases frustration (×streak multiplier); increments rejection streak |
+| `lust_rejection_soft` | Smaller frustration increase (×streak multiplier); increments rejection streak |
+
+`/api/drives/status` also returns `frustration` (0–3), `pending_count`, `rejection_streak`, and `last_intention_added_at`. A new intention rolls in automatically when `display.lust > 0.70`, at most once per 4 hours (30% probability).
+
 ## Reset
 
 Wipe config and data to start fresh:
