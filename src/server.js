@@ -265,7 +265,7 @@ if (needsSetup()) {
         model:       api_model || null,
         api_key_env: 'DRIVES_API_KEY',
       },
-      server: { port: 3001 },
+      server: { port: 24601 },
     };
     try {
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
@@ -292,7 +292,7 @@ if (needsSetup()) {
 } else {
   const drives = require('./index');
   const config  = require('./config').load();
-  const PORT    = config.server?.port || 3001;
+  const PORT    = config.server?.port || 24601;
 
   // Default dimension values (mirrors worker.js defaults)
   const DIM_DEFAULTS = {
