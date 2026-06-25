@@ -374,6 +374,14 @@ if (needsSetup()) {
   .bar-fill.neg { background: #e45b66; }
   .bar-fill.fat { background: var(--faint); }
   .neutral-marker { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--line); border-radius: 1px; }
+  .frust-section { display: flex; align-items: center; gap: 10px; padding: 14px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .frust-label { font-size: 0.72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); flex-shrink: 0; width: 100px; }
+  .frust-bar { flex: 1; height: 6px; background: var(--surface-hi); border-radius: 3px; overflow: hidden; }
+  .frust-fill { height: 100%; background: #e45b66; border-radius: 3px; transition: width .4s ease; }
+  .frust-val { font-size: 0.9rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #e45b66; width: 36px; text-align: right; flex-shrink: 0; }
+  .frust-stat { font-size: 0.75rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+  .frust-stat.pending { background: rgba(226,121,167,.12); color: #e279a7; }
+  .frust-stat.streak  { background: rgba(237,155,67,.12); color: #ed9b43; }
   .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
   .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .field label { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -529,6 +537,18 @@ function renderDimGrid(status) {
   const cfg    = currentCfg?.dimensions || dimDefaults;
   const d      = status.display;
 
+  const frust = status.frustration ?? 0;
+  const pc    = status.pending_count ?? 0;
+  const rs    = status.rejection_streak ?? 0;
+  const frustPct = Math.min(100, Math.round((frust / 3) * 100));
+  const frustHtml = \`<div class="frust-section">
+    <span class="frust-label">FRUSTRATION</span>
+    <div class="frust-bar"><div class="frust-fill" style="width:\${frustPct}%"></div></div>
+    <span class="frust-val" style="opacity:\${frust > 0 ? 1 : 0.35}">\${frust.toFixed(2)}</span>
+    \${pc > 0 ? \`<span class="frust-stat pending">&times;\${pc}</span>\` : ''}
+    \${rs > 0 ? \`<span class="frust-stat streak">S\${rs}</span>\` : ''}
+  </div>\`;
+
   const top3 = DIMS_ORDER.filter(k => k !== 'fatigue')
     .map(k => ({ k, v: d[k] ?? 0 }))
     .sort((a, b) => b.v - a.v)
@@ -565,7 +585,7 @@ function renderDimGrid(status) {
     </div>\`;
   }).join('');
 
-  area.innerHTML = highlightsHtml + groupsHtml;
+  area.innerHTML = highlightsHtml + frustHtml + groupsHtml;
   document.getElementById('dot').className = 'status-dot' + (status.stale ? ' stale' : '');
 }
 
