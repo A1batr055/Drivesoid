@@ -15,21 +15,9 @@ node --version
 ```
 If missing, install from https://nodejs.org/
 
-**1b — Port availability**
+**1b — Setup port**
 
-Drivesoid defaults to port 3001. Check whether it is already in use:
-```
-# Linux / macOS
-lsof -i :3001
-
-# Windows
-netstat -ano | findstr :3001
-```
-
-If port 3001 is occupied, identify the process. If it is unrelated to Drivesoid:
-- Setup must run on port 3001 (it is hardcoded). Ask the user to stop the occupying process temporarily, complete setup, then restart it.
-- After setup, set `server.port` to the user's preferred port in `drives.config.json`.
-- If the service port is not 3001, also set the `DRIVESOID_PORT` environment variable to match — the hooks use this to find the running service (default: 3001).
+Drivesoid setup defaults to port 3001. No pre-check needed — if the port is in use when you run Step 3, the server will print a clear error and exit. See Step 3 for how to handle that case.
 
 **1c — Existing bridge or middleware**
 
@@ -64,21 +52,27 @@ npm install
 
 Do NOT collect configuration through conversation.
 
-**Note:** Setup always runs on port 3001. The service port also defaults to 3001. To use a different port, edit `server.port` in `drives.config.json` after completing setup, then restart.
-
 1. Run `npm start`. If `drives.config.json` is missing or the API key is not set, Drivesoid starts in **setup mode** automatically and prints:
    ```
-   [drives] First-time setup — open http://127.0.0.1:3001/setup
+   [drives] First-time setup — open http://127.0.0.1:<port>/setup
    ```
+   If port 3001 is already in use, it prints an error and exits:
+   ```
+   [drives] ERROR: port 3001 is already in use.
+   [drives] To use a different port: DRIVESOID_SETUP_PORT=<port> npm start
+   ```
+   In that case, ask the user: *"Port 3001 is already in use on your machine. Which port should I use for setup? (e.g. 3002)"* Then rerun with `DRIVESOID_SETUP_PORT=<chosen-port> npm start`.
 
-2. Tell the user:
-   > "Please open **http://127.0.0.1:3001/setup** in your browser to complete setup. Fill in all fields and click Submit — I'll wait."
+2. Note the port printed in the startup message — you will need it for the URLs below.
 
-   **If the user is on a remote VPS with no local browser access**, they need an SSH tunnel first. Tell them to run this on their local machine (replace `user` and `vps-ip`):
+   Tell the user:
+   > "Please open **http://127.0.0.1:\<port\>/setup** in your browser to complete setup. Fill in all fields and click Submit — I'll wait."
+
+   **If the user is on a remote VPS with no local browser access**, they need an SSH tunnel first. Tell them to run this on their local machine (replace `port`, `user`, and `vps-ip`):
    ```
-   ssh -L 3001:localhost:3001 user@vps-ip
+   ssh -L <port>:localhost:<port> user@vps-ip
    ```
-   Then open `http://127.0.0.1:3001/setup` in their local browser as normal.
+   Then open `http://127.0.0.1:<port>/setup` in their local browser as normal.
 
 3. Wait for the user to confirm they submitted the form, then stop the process (Ctrl+C).
 

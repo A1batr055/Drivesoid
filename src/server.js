@@ -10,7 +10,7 @@ app.use(express.json());
 const ROOT        = path.join(__dirname, '..');
 const CONFIG_PATH = path.join(ROOT, 'drives.config.json');
 const ENV_PATH    = path.join(ROOT, '.env');
-const SETUP_PORT  = 3001;
+const SETUP_PORT  = parseInt(process.env.DRIVESOID_SETUP_PORT || '3001', 10);
 
 function loopbackOnly(req, res, next) {
   const addr = req.socket.remoteAddress;
@@ -265,7 +265,7 @@ if (needsSetup()) {
         model:       api_model || null,
         api_key_env: 'DRIVES_API_KEY',
       },
-      server: { port: SETUP_PORT },
+      server: { port: 3001 },
     };
     try {
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
@@ -277,8 +277,17 @@ if (needsSetup()) {
   });
   app.get('*', (req, res) => res.redirect('/setup'));
 
-  app.listen(SETUP_PORT, '127.0.0.1', () => {
+  const setupServer = app.listen(SETUP_PORT, '127.0.0.1', () => {
     console.log(`[drives] First-time setup — open http://127.0.0.1:${SETUP_PORT}/setup`);
+  });
+  setupServer.on('error', e => {
+    if (e.code === 'EADDRINUSE') {
+      console.error(`[drives] ERROR: port ${SETUP_PORT} is already in use.`);
+      console.error(`[drives] To use a different port: DRIVESOID_SETUP_PORT=<port> npm start`);
+      process.exit(1);
+    } else {
+      throw e;
+    }
   });
 } else {
   const drives = require('./index');
