@@ -366,7 +366,8 @@ function pruneExpiredIntentions(state, now_ts) {
 
 function maybeRollIntention(state, now_ts) {
   if (state.sleep?.status === 'asleep') return;
-  if (state.base.lust <= INTENTION_LUST_FLOOR) return;
+  const lustDisplay = state.display?.lust ?? state.base.lust;
+  if (lustDisplay <= INTENTION_LUST_FLOOR) return;
   const windowStart = Math.floor(now_ts / INTENTION_WINDOW_MS) * INTENTION_WINDOW_MS;
   const lastRoll = state.lust_intention_last_roll_at
     ? new Date(state.lust_intention_last_roll_at).getTime()
@@ -374,11 +375,13 @@ function maybeRollIntention(state, now_ts) {
   if (lastRoll >= windowStart) return;
   state.lust_intention_last_roll_at = new Date(windowStart).toISOString();
   if (Math.random() < INTENTION_ROLL_PROB) {
+    const addedAt = new Date(now_ts).toISOString();
     state.lust_intention_pending.push({
       id:         crypto.randomUUID(),
-      created_at: new Date(now_ts).toISOString(),
+      created_at: addedAt,
       expires_at: new Date(now_ts + INTENTION_EXPIRY_MS).toISOString(),
     });
+    state.last_intention_added_at = addedAt;
   }
 }
 
@@ -413,9 +416,9 @@ function maybeFireWhim(state, now_ts) {
 }
 
 // ── Lust intention / frustration ──────────────────────────────────────────────
-const INTENTION_ROLL_PROB    = 0.40;
-const INTENTION_LUST_FLOOR   = 0.40;
-const INTENTION_WINDOW_MS    = 30 * 60_000;
+const INTENTION_ROLL_PROB    = 0.30;
+const INTENTION_LUST_FLOOR   = 0.70;
+const INTENTION_WINDOW_MS    = 4 * 3_600_000;
 const INTENTION_EXPIRY_MS    = 2  * 3_600_000;
 const FRUSTRATION_CAP        = 3.0;
 const FRUSTRATION_DECAY_RATE = 0.04 / 3_600_000;
@@ -728,6 +731,7 @@ function createInitialState() {
     frustration_peak_at:          null,
     lust_intention_pending:       [],
     lust_intention_last_roll_at:  null,
+    last_intention_added_at:      null,
     _recent_labels:           [],
     base,
   };
@@ -751,6 +755,7 @@ async function tick({ throwOnError = false } = {}) {
     if (state.frustration_peak_at    === undefined) state.frustration_peak_at    = null;
     if (!Array.isArray(state.lust_intention_pending)) state.lust_intention_pending = [];
     if (state.lust_intention_last_roll_at === undefined) state.lust_intention_last_roll_at = null;
+    if (state.last_intention_added_at    === undefined) state.last_intention_added_at    = null;
 
     const eventLog = await processEvents(state, now_ts);
     pruneEvents(state.last_processed_event_id);

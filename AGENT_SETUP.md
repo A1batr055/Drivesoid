@@ -196,7 +196,7 @@ dejection 0.09  irritability 0.14
 
 `Stop` fires after each completed AI turn and records the assistant response as an event.
 
-Add the drives state block to your workspace `CLAUDE.md` so the AI persona understands what the `[drives]` block means. If the workspace already has other instructions, paste only the contents of `CLAUDE.md` from the Drivesoid install directory — do **not** replace the user's entire `CLAUDE.md`. The Drivesoid section starts with the `# Drives state` heading; on future updates, find and replace only that heading and everything under it.
+Add the drives state block to your workspace `CLAUDE.md` so the AI persona understands what the `[drives]` block means. If the workspace already has other instructions, paste only the contents of `drives-personas-context.md` from the Drivesoid install directory — do **not** replace the user's entire `CLAUDE.md`. The Drivesoid section starts with the `# Drives state` heading; on future updates, find and replace only that heading and everything under it.
 
 **Option B — Custom bridge / middleware**
 
@@ -298,4 +298,4 @@ Port settings and all personal data are preserved automatically. If the service 
 
 **State migration:** if the update adds a new dimension, the service initialises missing keys in the existing state file on the first tick. No manual intervention needed.
 
-**CLAUDE.md in your workspace:** `git pull` does not touch your workspace — only the Drivesoid install directory. To update, find the `# Drives state` section in your workspace `CLAUDE.md` and replace it with the contents of the updated `<install-dir>/CLAUDE.md`. Do not overwrite your entire workspace `CLAUDE.md`.
+**Persona context in your workspace:** `git pull` does not touch your workspace — only the Drivesoid install directory. To update, find the `# Drives state` section in your workspace and replace it with the contents of the updated `<install-dir>/drives-personas-context.md`. Do not overwrite your entire workspace instructions.

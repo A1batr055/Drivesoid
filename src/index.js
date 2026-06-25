@@ -53,7 +53,7 @@ function getStatus() {
       const pool    = dims.filter(k => k !== 'lust').some(k => posPool.includes(k)) ? 'positive' : 'negative';
       whim = { active: true, pool, dims, expires_at: state.active_whim.expires_at };
     }
-    return { snapshot_at: state.snapshot_at, snapshot_age_ms, stale, error: stale, base: state.base, display: d, prev: state.prev_display || null, groups, whim, sleep: state.sleep || null, frustration: state.frustration ?? 0, pending_count: (state.lust_intention_pending ?? []).length, rejection_streak: state.rejection_streak ?? 0 };
+    return { snapshot_at: state.snapshot_at, snapshot_age_ms, stale, error: stale, base: state.base, display: d, prev: state.prev_display || null, groups, whim, sleep: state.sleep || null, frustration: state.frustration ?? 0, pending_count: (state.lust_intention_pending ?? []).length, rejection_streak: state.rejection_streak ?? 0, last_intention_added_at: state.last_intention_added_at ?? null };
   } catch {
     return { error: true, stale: true, snapshot_age_ms: null };
   }
