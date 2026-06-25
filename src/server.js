@@ -545,8 +545,11 @@ function renderDimGrid(status) {
     <span class="frust-label">FRUSTRATION</span>
     <div class="frust-bar"><div class="frust-fill" style="width:\${frustPct}%"></div></div>
     <span class="frust-val" style="opacity:\${frust > 0 ? 1 : 0.35}">\${frust.toFixed(2)}</span>
-    \${pc > 0 ? \`<span class="frust-stat pending">&times;\${pc}</span>\` : ''}
-    \${rs > 0 ? \`<span class="frust-stat streak">S\${rs}</span>\` : ''}
+  </div>
+  <div class="frust-section">
+    <span class="frust-label">INTENTION</span>
+    <span class="frust-val" style="width:auto;color:\${pc > 0 ? '#e279a7' : 'var(--faint)'};opacity:\${pc > 0 ? 1 : 0.4}">\${pc > 0 ? '&times;' + pc : 'NONE'}</span>
+    \${rs > 0 ? \`<span class="frust-stat streak" style="margin-left:8px">S\${rs}</span>\` : ''}
   </div>\`;
 
   const top3 = DIMS_ORDER.filter(k => k !== 'fatigue')
