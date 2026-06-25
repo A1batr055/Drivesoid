@@ -10,7 +10,7 @@ app.use(express.json());
 const ROOT        = path.join(__dirname, '..');
 const CONFIG_PATH = path.join(ROOT, 'drives.config.json');
 const ENV_PATH    = path.join(ROOT, '.env');
-const SETUP_PORT  = parseInt(process.env.DRIVESOID_SETUP_PORT || '3001', 10);
+const SETUP_PORT  = parseInt(process.env.DRIVESOID_SETUP_PORT || '24601', 10);
 
 function loopbackOnly(req, res, next) {
   const addr = req.socket.remoteAddress;

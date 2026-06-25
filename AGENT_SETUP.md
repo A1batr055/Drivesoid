@@ -17,7 +17,7 @@ If missing, install from https://nodejs.org/
 
 **1b — Setup port**
 
-Drivesoid setup defaults to port 3001. No pre-check needed — if the port is in use when you run Step 3, the server will print a clear error and exit. See Step 3 for how to handle that case.
+Drivesoid setup defaults to port 24601. No pre-check needed — if the port is in use when you run Step 3, the server will print a clear error and exit. See Step 3 for how to handle that case.
 
 **1c — Existing bridge or middleware**
 
@@ -56,12 +56,12 @@ Do NOT collect configuration through conversation.
    ```
    [drives] First-time setup — open http://127.0.0.1:<port>/setup
    ```
-   If port 3001 is already in use, it prints an error and exits:
+   If port 24601 is already in use, it prints an error and exits:
    ```
-   [drives] ERROR: port 3001 is already in use.
+   [drives] ERROR: port 24601 is already in use.
    [drives] To use a different port: DRIVESOID_SETUP_PORT=<port> npm start
    ```
-   In that case, ask the user: *"Port 3001 is already in use on your machine. Which port should I use for setup? (e.g. 3002)"* Then rerun with `DRIVESOID_SETUP_PORT=<chosen-port> npm start`.
+   In that case, ask the user: *"Port 24601 is already in use on your machine. Which port should I use for setup? (e.g. 3002)"* Then rerun with `DRIVESOID_SETUP_PORT=<chosen-port> npm start`.
 
 2. Note the port printed in the startup message — you will need it for the URLs below.
 
@@ -90,7 +90,7 @@ Drivesoid will load the config written by the setup page and start normally. Ver
 ```
 curl http://127.0.0.1:PORT/api/drives/status
 ```
-Replace PORT with the service port (default 3001).
+Replace PORT with the service port (default 24601).
 Expected: JSON with `snapshot_at`, `display`, `groups` fields. If `stale: true`, wait 30 seconds and retry.
 
 ---
@@ -175,7 +175,7 @@ Enable hooks in your Claude Code settings (`.claude/settings.json`). **Paths mus
 
 **Requirements:** Python 3 must be installed (used by both hooks). On Windows, hooks run inside Git Bash — install it from https://git-scm.com/ if not present, and use forward-slash paths. On macOS, install Python 3 via `brew install python3` if not already present.
 
-If the service port is not 3001 (set in Step 1b), prefix the hook command with `DRIVESOID_PORT=<port>`:
+If the service port is not 24601 (set in Step 1b), prefix the hook command with `DRIVESOID_PORT=<port>`:
 ```json
 "command": "DRIVESOID_PORT=3099 bash /absolute/path/to/.claude/hooks/UserPromptSubmit.sh"
 ```
@@ -219,7 +219,7 @@ cp hooks/codex/Stop.py             <your-codex-hooks-dir>/
 
 Register in `~/.codex/hooks.json` — use `hooks/codex/hooks.json.example` as a template and replace the path placeholders with the absolute path to your Drivesoid install.
 
-If the service port is not 3001, prefix each command with `DRIVESOID_PORT=<port>`:
+If the service port is not 24601, prefix each command with `DRIVESOID_PORT=<port>`:
 ```json
 "command": "DRIVESOID_PORT=3099 python \"/path/to/drivesoid/hooks/codex/UserPromptSubmit.py\""
 ```
@@ -252,13 +252,13 @@ Configure in Claude Code (`.claude/settings.json` in your workspace or `~/.claud
     "drivesoid": {
       "command": "node",
       "args": ["/absolute/path/to/Drivesoid/src/mcp-server.js"],
-      "env": { "DRIVESOID_PORT": "3001" }
+      "env": { "DRIVESOID_PORT": "24601" }
     }
   }
 }
 ```
 
-Replace `/absolute/path/to/Drivesoid` with the actual install path. If the service port is not 3001, update `DRIVESOID_PORT` to match.
+Replace `/absolute/path/to/Drivesoid` with the actual install path. If the service port is not 24601, update `DRIVESOID_PORT` to match.
 
 The AI agent is then responsible for calling `drives_sleep` with the appropriate type when sleep state changes, and `drives_event` to report conversation events. The `drives_context` tool can be called at the start of a session to read current state.
 
@@ -272,7 +272,7 @@ Tell the user:
 >
 > You can view my emotional state and tune parameters anytime at:
 > **http://127.0.0.1:PORT/dashboard**
-> (replace PORT with the port number, default 3001)"
+> (replace PORT with the port number, default 24601)"
 
 ---
 

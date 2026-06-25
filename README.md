@@ -18,7 +18,7 @@ Drivesoid runs as a lightweight HTTP sidecar alongside your AI bridge. Your brid
 ```
 npm start
 ```
-Then open **http://127.0.0.1:3001/setup** in your browser and fill in the form.
+Then open **http://127.0.0.1:24601/setup** in your browser and fill in the form.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ Copy `drives.config.example.json` → `drives.config.json` and fill in:
 | `classifier.endpoint` | API base URL |
 | `classifier.model` | Model name (required, e.g. `deepseek-v4-flash` or `gpt-4o-mini`) |
 | `classifier.api_key_env` | Env var name holding the API key |
-| `server.port` | Port to listen on (default: `3001`) |
+| `server.port` | Port to listen on (default: `24601`) |
 
 Set your API key in `.env`:
 ```

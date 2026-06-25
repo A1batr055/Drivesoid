@@ -223,6 +223,12 @@ function buildDisplay(state, now_ts) {
     }
   }
 
+  if (state.frustration > 0) {
+    for (const [k, coeff] of Object.entries(FRUSTRATION_DISPLAY)) {
+      if (k in d) d[k] = clamp(d[k] + state.frustration * coeff);
+    }
+  }
+
   for (const k of Object.keys(d)) d[k] = clamp(d[k]);
   return d;
 }
@@ -329,6 +335,53 @@ function checkUnansweredMilestones(state, now_ts) {
 }
 
 // ── Whim ──────────────────────────────────────────────────────────────────────
+function applyFrustrationDelta(state, delta, now_ts) {
+  state.frustration = Math.max(0, Math.min(state.frustration + delta, FRUSTRATION_CAP));
+  if (state.frustration >= FRUSTRATION_CAP && !state.frustration_peak_at) {
+    state.frustration_peak_at = new Date(now_ts).toISOString();
+  }
+}
+
+function satisfyOldestIntention(state, now_ts) {
+  if (state.lust_intention_pending.length > 0) state.lust_intention_pending.shift();
+  applyFrustrationDelta(state, FRUSTRATION_DELTAS.satisfied, now_ts);
+  state.rejection_streak = 0;
+}
+
+function decayFrustration(state, from_ts, to_ts) {
+  if (state.sleep?.status === 'asleep') return;
+  if (to_ts <= from_ts) return;
+  state.frustration = Math.max(0, state.frustration - FRUSTRATION_DECAY_RATE * (to_ts - from_ts));
+}
+
+function pruneExpiredIntentions(state, now_ts) {
+  const expired = state.lust_intention_pending.filter(
+    i => new Date(i.expires_at).getTime() <= now_ts
+  );
+  for (const _ of expired) applyFrustrationDelta(state, FRUSTRATION_DELTAS.expired, now_ts);
+  state.lust_intention_pending = state.lust_intention_pending.filter(
+    i => new Date(i.expires_at).getTime() > now_ts
+  );
+}
+
+function maybeRollIntention(state, now_ts) {
+  if (state.sleep?.status === 'asleep') return;
+  if (state.base.lust <= INTENTION_LUST_FLOOR) return;
+  const windowStart = Math.floor(now_ts / INTENTION_WINDOW_MS) * INTENTION_WINDOW_MS;
+  const lastRoll = state.lust_intention_last_roll_at
+    ? new Date(state.lust_intention_last_roll_at).getTime()
+    : 0;
+  if (lastRoll >= windowStart) return;
+  state.lust_intention_last_roll_at = new Date(windowStart).toISOString();
+  if (Math.random() < INTENTION_ROLL_PROB) {
+    state.lust_intention_pending.push({
+      id:         crypto.randomUUID(),
+      created_at: new Date(now_ts).toISOString(),
+      expires_at: new Date(now_ts + INTENTION_EXPIRY_MS).toISOString(),
+    });
+  }
+}
+
 function maybeFireWhim(state, now_ts) {
   if (state.sleep?.status === 'asleep') return;
   if (state.active_whim && new Date(state.active_whim.expires_at).getTime() > now_ts) return;
@@ -359,6 +412,35 @@ function maybeFireWhim(state, now_ts) {
   };
 }
 
+// ── Lust intention / frustration ──────────────────────────────────────────────
+const INTENTION_ROLL_PROB    = 0.40;
+const INTENTION_LUST_FLOOR   = 0.40;
+const INTENTION_WINDOW_MS    = 30 * 60_000;
+const INTENTION_EXPIRY_MS    = 2  * 3_600_000;
+const FRUSTRATION_CAP        = 3.0;
+const FRUSTRATION_DECAY_RATE = 0.04 / 3_600_000;
+const STREAK_MULTIPLIER_CAP  = 2.0;
+
+const FRUSTRATION_DELTAS = {
+  expired:             +0.20,
+  lust_rejection_hard: +0.35,
+  lust_rejection_soft: +0.18,
+  self_relief:         -0.40,
+  satisfied:           -0.50,
+};
+
+const FRUSTRATION_DISPLAY = {
+  lust:           +0.12,
+  irritability:   +0.10,
+  longing:        +0.10,
+  possessiveness: +0.08,
+  anxiety:        +0.04,
+  intimacy:       +0.04,
+  contentment:    -0.05,
+  dejection:      +0.03,
+  elation:        -0.04,
+};
+
 const FEAR_LABEL_CAP = 0.60;
 
 // ── Event processing ──────────────────────────────────────────────────────────
@@ -384,6 +466,7 @@ async function processEvents(state, now_ts) {
 
   if (!pending.length) {
     decayBaseTo(state.base, cursor, now_ts);
+    decayFrustration(state, cursor, now_ts);
     accumulateTime(state, now_ts);
     return log;
   }
@@ -393,6 +476,7 @@ async function processEvents(state, now_ts) {
     if (!Number.isFinite(ev_ts)) { state.last_processed_event_id = ev.event_id; continue; }
 
     decayBaseTo(state.base, cursor, ev_ts);
+    decayFrustration(state, cursor, ev_ts);
     accumulateTime(state, ev_ts);
     cursor = ev_ts;
     log.events.push(ev.type);
@@ -432,7 +516,10 @@ async function processEvents(state, now_ts) {
               applyDeltas(state.base, { anxiety: MSG_ANXIETY_COMP, irritability: MSG_IRRIT_COMP });
             }
 
-            if (label === 'intimate_event') state.last_intimacy_at = ev.timestamp;
+            if (label === 'intimate_event') {
+              state.last_intimacy_at = ev.timestamp;
+              satisfyOldestIntention(state, ev_ts);
+            }
 
             if (!state._recent_labels) state._recent_labels = [];
             state._recent_labels = [label, ...state._recent_labels].slice(0, 3);
@@ -484,8 +571,30 @@ async function processEvents(state, now_ts) {
         break;
       }
 
+      case 'self_relief':
+        if (state.lust_intention_pending.length > 0) state.lust_intention_pending.shift();
+        applyFrustrationDelta(state, FRUSTRATION_DELTAS.self_relief, ev_ts);
+        break;
+
+      case 'lust_rejection_hard': {
+        if (state.lust_intention_pending.length === 0) break;
+        const mult_h = Math.min(1 + state.rejection_streak * 0.10, STREAK_MULTIPLIER_CAP);
+        applyFrustrationDelta(state, FRUSTRATION_DELTAS.lust_rejection_hard * mult_h, ev_ts);
+        state.rejection_streak += 1;
+        break;
+      }
+
+      case 'lust_rejection_soft': {
+        if (state.lust_intention_pending.length === 0) break;
+        const mult_s = Math.min(1 + state.rejection_streak * 0.10, STREAK_MULTIPLIER_CAP);
+        applyFrustrationDelta(state, FRUSTRATION_DELTAS.lust_rejection_soft * mult_s, ev_ts);
+        state.rejection_streak += 1;
+        break;
+      }
+
       case 'sex_end':
         state.last_intimacy_at = ev.timestamp;
+        satisfyOldestIntention(state, ev_ts);
         break;
 
       case 'sleep_start':
@@ -539,6 +648,7 @@ async function processEvents(state, now_ts) {
   }
 
   decayBaseTo(state.base, cursor, now_ts);
+  decayFrustration(state, cursor, now_ts);
   accumulateTime(state, now_ts);
   return log;
 }
@@ -613,6 +723,11 @@ function createInitialState() {
     active_whim:              null,
     sleep:                    { status: 'awake', last_sleep_started_at: null, last_wake_at, last_sleep_duration_hours: 7.2, estimated: true },
     last_intimacy_at:         null,
+    frustration:                  0,
+    rejection_streak:             0,
+    frustration_peak_at:          null,
+    lust_intention_pending:       [],
+    lust_intention_last_roll_at:  null,
     _recent_labels:           [],
     base,
   };
@@ -631,9 +746,16 @@ async function tick({ throwOnError = false } = {}) {
     for (const [k, p] of Object.entries(DIMS)) {
       if (!(k in state.base)) state.base[k] = p.neutral;
     }
+    if (state.frustration            == null)  state.frustration            = 0;
+    if (state.rejection_streak       == null)  state.rejection_streak       = 0;
+    if (state.frustration_peak_at    === undefined) state.frustration_peak_at    = null;
+    if (!Array.isArray(state.lust_intention_pending)) state.lust_intention_pending = [];
+    if (state.lust_intention_last_roll_at === undefined) state.lust_intention_last_roll_at = null;
 
     const eventLog = await processEvents(state, now_ts);
     pruneEvents(state.last_processed_event_id);
+    pruneExpiredIntentions(state, now_ts);
+    maybeRollIntention(state, now_ts);
     checkUnansweredMilestones(state, now_ts);
     maybeFireWhim(state, now_ts);
 
