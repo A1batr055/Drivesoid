@@ -671,6 +671,10 @@ function appendHistory(state, now_ts, eventLog) {
                   : null,
     base:    { ...state.base },
     display: { ...state.display },
+    frustration:             state.frustration ?? 0,
+    pending_count:           (state.lust_intention_pending ?? []).length,
+    rejection_streak:        state.rejection_streak ?? 0,
+    last_intention_added_at: state.last_intention_added_at ?? null,
   };
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
