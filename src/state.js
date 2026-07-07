@@ -1,8 +1,8 @@
 'use strict';
 const fs   = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('./paths');
 
-const DATA_DIR   = path.join(__dirname, '../data');
 const STATE_PATH = path.join(DATA_DIR, 'drives.json');
 const TMP_PATH   = STATE_PATH + '.tmp';
 

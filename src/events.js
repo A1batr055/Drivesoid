@@ -2,8 +2,8 @@
 const fs     = require('fs');
 const path   = require('path');
 const crypto = require('crypto');
+const { DATA_DIR } = require('./paths');
 
-const DATA_DIR    = path.join(__dirname, '../data');
 const EVENTS_PATH = path.join(DATA_DIR, 'events.jsonl');
 const ROTATE_BYTES = 5 * 1024 * 1024; // 5 MB
 const ROTATE_KEEP  = 10_000;           // lines retained after rotation

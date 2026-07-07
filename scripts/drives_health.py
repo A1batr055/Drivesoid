@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Drivesoid health report — reads drives-history.jsonl and prints a summary."""
 
-import json, sys, math
+import json, sys, math, os
 from datetime import datetime, timezone
 from collections import Counter
 from pathlib import Path
 
-HISTORY_PATH = Path(__file__).parent.parent / 'data' / 'drives-history.jsonl'
+HISTORY_PATH = Path(os.environ.get('DRIVES_DATA_DIR', str(Path(__file__).parent.parent / 'data'))) / 'drives-history.jsonl'
 DIMS = [
     'vitality', 'fatigue',
     'longing', 'intimacy', 'possessiveness', 'lust',
@@ -19,7 +19,7 @@ GROUPS = {
     'attachment': ['longing', 'intimacy', 'possessiveness', 'lust'],
     'threat':     ['jealousy', 'anxiety', 'protectiveness', 'fear'],
     'reward':     ['contentment', 'elation', 'seeking', 'play'],
-    'negative':   ['dejection', 'irritability'],
+    'negative':   ['dejection', 'irritability', 'anxiety', 'fear'],
 }
 
 days = int(sys.argv[1]) if len(sys.argv) > 1 else 7
@@ -96,6 +96,19 @@ for grp, dims in GROUPS.items():
         if not s: continue
         tr = trend(vals)
         print(f'    {d:<16} mean={s["mean"]:.3f}  std={s["std"]:.3f}  [{s["min"]:.2f}–{s["max"]:.2f}]  {tr}')
+
+print('\n── BASE / MOOD MEANS ──────────────────────────────────────')
+all_base = [r.get('base', {}) for r in rows]
+all_mood = [r.get('mood', {}) for r in rows if isinstance(r.get('mood'), dict)]
+for grp, dims in GROUPS.items():
+    print(f'  {grp.upper()}')
+    for d in dims:
+        b = stats([base.get(d) for base in all_base])
+        m = stats([mood.get(d) for mood in all_mood])
+        if not b and not m: continue
+        b_txt = f'{b["mean"]:.3f}' if b else 'n/a'
+        m_txt = f'{m["mean"]:.3f}' if m else 'n/a'
+        print(f'    {d:<16} base={b_txt}  mood={m_txt}')
 
 print('\n── CLASSIFIER ─────────────────────────────────────────────')
 all_cls = [c for r in rows for c in (r.get('classifier') or []) if c]

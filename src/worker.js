@@ -5,10 +5,10 @@ const crypto = require('crypto');
 const { readState, writeState }   = require('./state');
 const { classifyMessage }         = require('./classifier');
 const { pruneEvents }             = require('./events');
+const { DATA_DIR }                = require('./paths');
 const _cfg = require('./config').load();
 const { timezone_offset_hours: TZ_OFFSET = 8 } = _cfg;
 
-const DATA_DIR     = process.env.DRIVES_DATA_DIR || path.join(__dirname, '../data');
 const EVENTS_PATH  = path.join(DATA_DIR, 'events.jsonl');
 const HISTORY_PATH = path.join(DATA_DIR, 'drives-history.jsonl');
 const HISTORY_DAYS = 30;
@@ -97,8 +97,7 @@ const NEG_CTX_LABELS = new Set(['cold', 'conflict', 'distant', 'hostile', 'strug
 
 function recentLabels(state, now_ts) {
   return (state._recent_labels || [])
-    .map(e => (typeof e === 'string' ? { label: e, ts: null } : e))
-    .filter(e => !e.ts || now_ts - new Date(e.ts).getTime() < RECENT_LABEL_WINDOW_MS);
+    .filter(e => e?.ts && now_ts - new Date(e.ts).getTime() < RECENT_LABEL_WINDOW_MS);
 }
 
 function contextValence(state, now_ts) {
@@ -837,6 +836,7 @@ async function advance(state, now_ts) {
   if ((state.schema_version ?? 1) < 2) {
     state.schema_version = 2;
     delete state.high_emotion_until;
+    state._recent_labels = (state._recent_labels || []).filter(e => e && typeof e === 'object' && e.ts);
   }
   if (state.frustration            == null)  state.frustration            = 0;
   if (state.rejection_streak       == null)  state.rejection_streak       = 0;

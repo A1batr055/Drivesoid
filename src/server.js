@@ -304,6 +304,7 @@ if (needsSetup()) {
     jealousy:       { neutral: 0.22, floor: 0.00 },
     anxiety:        { neutral: 0.20, floor: 0.02 },
     protectiveness: { neutral: 0.25, floor: 0.05 },
+    fear:           { neutral: 0.00, floor: 0.00 },
     contentment:    { neutral: 0.35, floor: 0.06 },
     elation:        { neutral: 0.20, floor: 0.02 },
     seeking:        { neutral: 0.25, floor: 0.12 },
@@ -374,6 +375,11 @@ if (needsSetup()) {
   .bar-fill.neg { background: #e45b66; }
   .bar-fill.fat { background: var(--faint); }
   .neutral-marker { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--line); border-radius: 1px; }
+  .mood-marker { position: absolute; top: -3px; width: 2px; height: 14px; background: rgba(112,232,239,.55); border-radius: 1px; }
+  .legend-row { display: flex; gap: 18px; align-items: center; color: var(--faint); font-size: 0.74rem; margin: -8px 0 18px; flex-wrap: wrap; }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .legend-mark { width: 2px; height: 14px; border-radius: 1px; background: var(--line); display: inline-block; }
+  .legend-mark.mood { background: rgba(112,232,239,.55); }
   .frust-section { display: flex; align-items: center; gap: 10px; padding: 14px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
   .frust-label { font-size: 0.72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); flex-shrink: 0; width: 100px; }
   .frust-bar { flex: 1; height: 6px; background: var(--surface-hi); border-radius: 3px; overflow: hidden; }
@@ -465,7 +471,7 @@ if (needsSetup()) {
     </button>
     <div class="collapse-body" id="dims-collapse">
       <table class="dim-table" style="margin-top:8px;">
-        <thead><tr><th id="t-dim-col">Dimension</th><th id="t-neutral-col">Neutral</th><th id="t-floor-col">Floor</th></tr></thead>
+        <thead><tr><th id="t-dim-col">Dimension</th><th id="t-neutral-col">Temperament</th><th id="t-floor-col">Floor</th></tr></thead>
         <tbody id="dim-tbody"></tbody>
       </table>
       <div class="save-row">
@@ -496,9 +502,13 @@ const GROUP_LABELS = {
   en: { activation:'Activation', attachment:'Attachment', threat:'Threat', reward:'Reward', negative:'Negative' },
   zh: { activation:'激活状态', attachment:'依恋连接', threat:'威胁反应', reward:'奖赏驱动', negative:'负向状态' },
 };
+const LEGEND_LABELS = {
+  en: { temperament:'Temperament', mood:'Mood' },
+  zh: { temperament:'性情锚点', mood:'心境' },
+};
 const S = {
-  en: { state:'Emotional State', refresh:'auto-refresh 15s', status:'ok', config:'Configuration', 'config-note':'next session', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC)', adv:'Advanced · classifier', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dim-col':'Dimension', 'neutral-col':'Neutral', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dims require restart', saved:'Saved', 'lang-btn':'中文' },
-  zh: { state:'情感状态', refresh:'15秒自动刷新', status:'正常', config:'配置', 'config-note':'下次会话生效', 'ai-name':'AI 人格名称', 'user-name':'你的名字', relation:'关系', tz:'时区（UTC）', adv:'高级设置 · 分类器', 'api-url':'API 地址', model:'模型', dims:'维度调参', 'dim-col':'维度', 'neutral-col':'基准值', 'floor-col':'下限', save:'保存', 'save-note':'基础字段下次会话生效 · 维度参数重启后生效', saved:'已保存', 'lang-btn':'EN' },
+  en: { state:'Emotional State', refresh:'auto-refresh 15s', status:'ok', config:'Configuration', 'config-note':'next session', 'ai-name':'AI persona name', 'user-name':'Your name', relation:'Relationship', tz:'Timezone (UTC)', adv:'Advanced · classifier', 'api-url':'API base URL', model:'Model', dims:'Dimension Tuning', 'dim-col':'Dimension', 'neutral-col':'Temperament', 'floor-col':'Floor', save:'Save', 'save-note':'Basic fields apply on next session · Dims require restart', saved:'Saved', 'lang-btn':'中文' },
+  zh: { state:'情感状态', refresh:'15秒自动刷新', status:'正常', config:'配置', 'config-note':'下次会话生效', 'ai-name':'AI 人格名称', 'user-name':'你的名字', relation:'关系', tz:'时区（UTC）', adv:'高级设置 · 分类器', 'api-url':'API 地址', model:'模型', dims:'维度调参', 'dim-col':'维度', 'neutral-col':'性情锚点', 'floor-col':'下限', save:'保存', 'save-note':'基础字段下次会话生效 · 维度参数重启后生效', saved:'已保存', 'lang-btn':'EN' },
 };
 
 let lang = 'en';
@@ -534,6 +544,7 @@ function renderDimGrid(status) {
   const area   = document.getElementById('dims-area');
   const labels = DIM_LABELS[lang];
   const grpLbls = GROUP_LABELS[lang];
+  const legend = LEGEND_LABELS[lang];
   const cfg    = currentCfg?.dimensions || dimDefaults;
   const d      = status.display;
 
@@ -566,19 +577,28 @@ function renderDimGrid(status) {
       \${tag ? \`<div class="highlight-tag">\${tag}</div>\` : ''}
     </div>\`;
   }).join('')}</div>\`;
+  const legendHtml = \`<div class="legend-row">
+    <span class="legend-item"><span class="legend-mark"></span>\${legend.temperament}</span>
+    <span class="legend-item"><span class="legend-mark mood"></span>\${legend.mood}</span>
+  </div>\`;
 
   const groupsHtml = DIM_GROUPS.map(g => {
     const rows = g.dims.map(k => {
       const v    = d[k] ?? 0;
+      const mv   = status.mood?.[k];
       const neutral = cfg[k]?.neutral ?? dimDefaults[k]?.neutral ?? 0.5;
       const pct  = Math.round(v * 100);
       const nPct = Math.round(neutral * 100);
       const cls  = DIM_CLASS[k] || 'pos';
+      const moodMarker = typeof mv === 'number'
+        ? \`<div class="mood-marker" style="left:\${Math.round(mv * 100)}%"></div>\`
+        : '';
       return \`<div class="dim-row">
         <div class="dim-label"><span>\${labels[k] || k}</span><span class="val">\${v.toFixed(2)}</span></div>
         <div class="bar-track">
           <div class="bar-fill \${cls}" style="width:\${pct}%"></div>
           <div class="neutral-marker" style="left:\${nPct}%"></div>
+          \${moodMarker}
         </div>
       </div>\`;
     }).join('');
@@ -588,7 +608,7 @@ function renderDimGrid(status) {
     </div>\`;
   }).join('');
 
-  area.innerHTML = highlightsHtml + frustHtml + groupsHtml;
+  area.innerHTML = highlightsHtml + frustHtml + legendHtml + groupsHtml;
   document.getElementById('dot').className = 'status-dot' + (status.stale ? ' stale' : '');
 }
 
@@ -722,7 +742,22 @@ setInterval(loadStatus, 15000);
         existing.classifier.endpoint = classifier.endpoint.replace(/\/$/, '');
       }
       if (classifier?.model)    existing.classifier.model = classifier.model;
-      if (dimensions)    existing.dimensions = dimensions;
+      if (dimensions) {
+        for (const [dim, vals] of Object.entries(dimensions)) {
+          const neutral = vals?.neutral;
+          const floor   = vals?.floor;
+          if (!Number.isFinite(neutral) || neutral < 0 || neutral > 1) {
+            return res.status(400).send(`Invalid neutral for ${dim}: must be a finite number in [0,1]`);
+          }
+          if (!Number.isFinite(floor) || floor < 0 || floor > 1) {
+            return res.status(400).send(`Invalid floor for ${dim}: must be a finite number in [0,1]`);
+          }
+          if (floor > neutral) {
+            return res.status(400).send(`Invalid dimension ${dim}: floor must be <= neutral`);
+          }
+        }
+        existing.dimensions = dimensions;
+      }
       fs.writeFileSync(CONFIG_PATH, JSON.stringify(existing, null, 2));
       res.json({ ok: true });
     } catch (e) {

@@ -3,10 +3,11 @@ const fs   = require('fs');
 const path = require('path');
 
 const ROOT    = path.join(__dirname, '..');
+const DATA_DIR = process.env.DRIVES_DATA_DIR || path.join(ROOT, 'data');
 const targets = [
   path.join(ROOT, 'drives.config.json'),
   path.join(ROOT, '.env'),
-  path.join(ROOT, 'data'),
+  DATA_DIR,
 ];
 
 for (const t of targets) {
