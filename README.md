@@ -10,6 +10,18 @@ Drivesoid runs as a lightweight HTTP sidecar alongside your AI bridge. Your brid
 
 **Dimensions tracked:** vitality, fatigue, longing, intimacy, possessiveness, lust, jealousy, anxiety, protectiveness, fear, contentment, elation, seeking, play, dejection, irritability
 
+### Emotional dynamics (v2)
+
+The state model is tuned to match real human affect dynamics:
+
+- **Two timescales** — fast emotion (`base`) decays toward a slow `mood`, which consolidates intense episodes (arousal-gated) and drifts back to the temperament anchor over days. Sleep speeds mood recovery. A fight leaves an aftermath; comfort helps, but recovery is gradual.
+- **State-dependent impact** — increases scale with remaining headroom, relief scales with the current level, and acute relief cannot push a negative dimension below mood.
+- **Habituation** — repeating the same label within 15 minutes attenuates its effect (×0.7 per repeat); affection spam saturates instead of pinning.
+- **Valence-aware timing signals** — quick replies and hot conversations carry arousal only; their emotional direction is borrowed from recent context, so a heated argument escalates rather than soothes.
+- **Negativity bias** — negative dimensions decay slower than positive ones.
+
+Run `node scripts/simulate.js` to replay six acceptance scenarios offline (virtual clock, mocked classifier, seeded RNG) and verify the curve shapes.
+
 ## Quick start
 
 **For AI agents:** Read [AGENT_SETUP.md](AGENT_SETUP.md) — it tells you exactly what to install, what to ask the user, and how to integrate.
