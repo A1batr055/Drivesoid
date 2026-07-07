@@ -44,7 +44,7 @@ function getStatus() {
       attachment: avg(d.longing, d.intimacy, d.possessiveness, d.lust),
       threat:     d.fear > 0 ? avg(d.jealousy, d.anxiety, d.protectiveness, d.fear) : avg(d.jealousy, d.anxiety, d.protectiveness),
       reward:     avg(d.contentment, d.elation, d.seeking, d.play),
-      negative:   avg(d.dejection, d.irritability),
+      negative:   d.dejection * 0.30 + d.irritability * 0.25 + d.anxiety * 0.25 + d.fear * 0.20,
     };
     let whim = { active: false };
     if (state.active_whim && new Date(state.active_whim.expires_at).getTime() > now) {

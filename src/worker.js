@@ -60,12 +60,12 @@ const FATIGUE_C = { peak: 3, amp: 0.8, width: 10 };
 const LABEL_DELTAS = {
   affectionate:       { intimacy: +0.20, contentment: +0.15, anxiety: -0.18, lust: +0.12, longing: -0.10, fear: -0.08 },
   playful:            { play: +0.20, elation: +0.18, contentment: +0.12, seeking: +0.10, irritability: -0.10, lust: +0.10 },
-  vulnerable:         { intimacy: +0.25, protectiveness: +0.20, contentment: +0.12, anxiety: -0.10, longing: -0.08 },
+  vulnerable:         { intimacy: +0.25, protectiveness: +0.20, anxiety: +0.12, dejection: +0.08, contentment: +0.03 },
   reassuring:         { anxiety: -0.25, jealousy: -0.20, contentment: +0.15, intimacy: +0.15, fear: -0.15 },
   cold:               { anxiety: +0.15, dejection: +0.12, longing: +0.10, intimacy: -0.10 },
   conflict:           { anxiety: +0.20, irritability: +0.15, dejection: +0.15, possessiveness: +0.18, lust: +0.10, intimacy: -0.15, contentment: -0.15 },
   distant:            { anxiety: +0.12, dejection: +0.10, longing: +0.12, intimacy: -0.08 },
-  struggling:         { protectiveness: +0.30, dejection: +0.08, contentment: -0.08 },
+  struggling:         { protectiveness: +0.30, anxiety: +0.12, dejection: +0.12, contentment: -0.08 },
   intimate_reference: { lust: +0.18, intimacy: +0.10 },
   intimate_event:     { lust: +0.25, intimacy: +0.18 },
   neutral:            { anxiety: -0.05, longing: -0.04, contentment: +0.04 },
@@ -82,7 +82,11 @@ const MSG_STRUCTURAL = {
 };
 const MSG_ANXIETY_COMP = -0.075;
 const MSG_IRRIT_COMP   = -0.060;
-const NEG_LABELS = new Set(['cold', 'conflict', 'distant', 'hostile', 'fear_separation', 'fear_death', 'fear_concern', 'fear_general']);
+const SOOTHING_LABELS = new Set(['affectionate', 'playful', 'reassuring']);
+const RELIEF_LABELS = new Set(['affectionate', 'playful', 'reassuring', 'neutral']);
+const HIGH_EMOTION_LABELS = new Set(['conflict', 'hostile', 'fear_separation', 'fear_death', 'fear_concern', 'fear_general']);
+const HIGH_EMOTION_WINDOW_MS = 10 * 60_000;
+const HIGH_EMOTION_RELIEF_MULT = 0.35;
 
 const MSG_QUICK_REPLY = { contentment: +0.12, elation: +0.10, anxiety: -0.10 };
 const MSG_HOT_CONV    = { contentment: +0.15, play: +0.12, elation: +0.10, longing: -0.20 };
@@ -503,8 +507,13 @@ async function processEvents(state, now_ts) {
             log.classifier.push({ label, confidence: +confidence.toFixed(3) });
             const raw    = LABEL_DELTAS[label] || {};
             const scaled = {};
+            const highEmotionUntil  = new Date(state.high_emotion_until || 0).getTime();
+            const highEmotionActive = Number.isFinite(highEmotionUntil) && highEmotionUntil > ev_ts;
             for (const [k, v] of Object.entries(raw)) {
-              scaled[k] = clamp(v * confidence, -0.25, 0.25);
+              const reliefMult = highEmotionActive && RELIEF_LABELS.has(label) && (k === 'anxiety' || k === 'fear') && v < 0
+                ? HIGH_EMOTION_RELIEF_MULT
+                : 1;
+              scaled[k] = clamp(v * confidence * reliefMult, -0.25, 0.25);
             }
             if (scaled.fear != null && label.startsWith('fear_')) {
               const seg     = state.last_segment;
@@ -515,8 +524,13 @@ async function processEvents(state, now_ts) {
             }
             applyDeltas(state.base, scaled);
 
-            if (!NEG_LABELS.has(label)) {
-              applyDeltas(state.base, { anxiety: MSG_ANXIETY_COMP, irritability: MSG_IRRIT_COMP });
+            if (HIGH_EMOTION_LABELS.has(label)) {
+              state.high_emotion_until = new Date(ev_ts + HIGH_EMOTION_WINDOW_MS).toISOString();
+            }
+
+            if (SOOTHING_LABELS.has(label)) {
+              const anxietyComp = highEmotionActive ? MSG_ANXIETY_COMP * HIGH_EMOTION_RELIEF_MULT : MSG_ANXIETY_COMP;
+              applyDeltas(state.base, { anxiety: anxietyComp, irritability: MSG_IRRIT_COMP });
             }
 
             if (label === 'intimate_event') {

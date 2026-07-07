@@ -56,7 +56,9 @@ Rules:
 - Classify only the [CLASSIFY] message; context is for reference only
 - confidence reflects certainty; can be as low as 0.4 when unsure
 - When the message is plain and unremarkable, use neutral
-- fear_* labels take priority over struggling when the core emotion is fear rather than stress`;
+- fear_* labels take priority over struggling when the core emotion is fear rather than stress
+- Mentions of death, suicide, major accidents, or life threats prefer fear_death, even when vulnerability or stress is also expressed
+- vulnerable is for fragility, hurt, or insecurity; when the core meaning is death, danger, or fear, choose the matching fear_* label`;
 
 function createError(message, transient) {
   const error     = new Error(message);
