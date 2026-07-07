@@ -8,7 +8,7 @@ const { pruneEvents }             = require('./events');
 const _cfg = require('./config').load();
 const { timezone_offset_hours: TZ_OFFSET = 8 } = _cfg;
 
-const DATA_DIR     = path.join(__dirname, '../data');
+const DATA_DIR     = process.env.DRIVES_DATA_DIR || path.join(__dirname, '../data');
 const EVENTS_PATH  = path.join(DATA_DIR, 'events.jsonl');
 const HISTORY_PATH = path.join(DATA_DIR, 'drives-history.jsonl');
 const HISTORY_DAYS = 30;
@@ -716,9 +716,8 @@ function pruneHistory() {
 }
 
 // ── Initial state ─────────────────────────────────────────────────────────────
-function createInitialState() {
-  const now    = new Date();
-  const now_ts = now.getTime();
+function createInitialState(now_ts = Date.now()) {
+  const now = new Date(now_ts);
 
   const local_now = new Date(now_ts + TZ_OFFSET * 3_600_000);
   local_now.setUTCHours(7, 0, 0, 0);
@@ -758,40 +757,46 @@ function createInitialState() {
 // ── Worker tick ───────────────────────────────────────────────────────────────
 let _running = false;
 
+async function advance(state, now_ts) {
+  for (const [k, p] of Object.entries(DIMS)) {
+    if (!(k in state.base)) state.base[k] = p.neutral;
+  }
+  if (state.frustration            == null)  state.frustration            = 0;
+  if (state.rejection_streak       == null)  state.rejection_streak       = 0;
+  if (state.frustration_peak_at    === undefined) state.frustration_peak_at    = null;
+  if (!Array.isArray(state.lust_intention_pending)) state.lust_intention_pending = [];
+  if (state.lust_intention_last_roll_at === undefined) state.lust_intention_last_roll_at = null;
+  if (state.last_intention_added_at    === undefined) state.last_intention_added_at    = null;
+
+  const eventLog = await processEvents(state, now_ts);
+  pruneExpiredIntentions(state, now_ts);
+  maybeRollIntention(state, now_ts);
+  checkUnansweredMilestones(state, now_ts);
+  maybeFireWhim(state, now_ts);
+
+  if (state.last_segment?.status === 'open') {
+    const last_msg_ts = new Date(state.last_segment.last_message_at).getTime();
+    if (now_ts - last_msg_ts > 15 * 60_000) state.last_segment.status = 'summarized';
+  }
+
+  const iso          = new Date(now_ts).toISOString();
+  state.snapshot_at  = iso;
+  state.state_updated_at = iso;
+  if (state.display) state.prev_display = state.display;
+  state.display      = buildDisplay(state, now_ts);
+  return eventLog;
+}
+
 async function tick({ throwOnError = false } = {}) {
   if (_running) return;
   _running = true;
   try {
     const now_ts = Date.now();
     let state    = readState();
-    if (!state) state = createInitialState();
-    for (const [k, p] of Object.entries(DIMS)) {
-      if (!(k in state.base)) state.base[k] = p.neutral;
-    }
-    if (state.frustration            == null)  state.frustration            = 0;
-    if (state.rejection_streak       == null)  state.rejection_streak       = 0;
-    if (state.frustration_peak_at    === undefined) state.frustration_peak_at    = null;
-    if (!Array.isArray(state.lust_intention_pending)) state.lust_intention_pending = [];
-    if (state.lust_intention_last_roll_at === undefined) state.lust_intention_last_roll_at = null;
-    if (state.last_intention_added_at    === undefined) state.last_intention_added_at    = null;
+    if (!state) state = createInitialState(now_ts);
 
-    const eventLog = await processEvents(state, now_ts);
+    const eventLog = await advance(state, now_ts);
     pruneEvents(state.last_processed_event_id);
-    pruneExpiredIntentions(state, now_ts);
-    maybeRollIntention(state, now_ts);
-    checkUnansweredMilestones(state, now_ts);
-    maybeFireWhim(state, now_ts);
-
-    if (state.last_segment?.status === 'open') {
-      const last_msg_ts = new Date(state.last_segment.last_message_at).getTime();
-      if (now_ts - last_msg_ts > 15 * 60_000) state.last_segment.status = 'summarized';
-    }
-
-    const iso          = new Date(now_ts).toISOString();
-    state.snapshot_at  = iso;
-    state.state_updated_at = iso;
-    if (state.display) state.prev_display = state.display;
-    state.display      = buildDisplay(state, now_ts);
     writeState(state);
     appendHistory(state, now_ts, eventLog);
   } catch (e) {
@@ -813,4 +818,4 @@ function init() {
   setInterval(() => tick().catch(e => console.error('[drives:worker] interval error:', e.message)), WORKER_INTERVAL_MS);
 }
 
-module.exports = { init, handleSessionStart, buildDisplay };
+module.exports = { init, handleSessionStart, buildDisplay, advance, createInitialState };

@@ -7,3 +7,4 @@ drives.config.json
 *.log
 .claude/
 lust_plan_review_drivesoid.md
+scripts/sim-out/
