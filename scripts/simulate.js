@@ -266,18 +266,22 @@ async function runScenario(sc) {
     rows.push({
       t:       (i * TICK_MS) / MIN,
       base:    { ...state.base },
+      mood:    { ...state.mood },
       display: { ...state.display },
       labels:  log.classifier.map(c => c.label ?? 'error'),
       sleep:   state.sleep?.status,
     });
   }
 
-  const header = ['t_min', 'sleep', ...Object.keys(dims).map(k => `base.${k}`),
+  const header = ['t_min', 'sleep',
+                  ...Object.keys(dims).map(k => `base.${k}`),
+                  ...Object.keys(dims).map(k => `mood.${k}`),
                   'display.anxiety', 'display.fear', 'display.intimacy', 'display.longing', 'labels'];
   const csv = [header.join(',')];
   for (const row of rows) {
     csv.push([row.t.toFixed(1), row.sleep,
       ...Object.keys(dims).map(k => row.base[k].toFixed(4)),
+      ...Object.keys(dims).map(k => (row.mood?.[k] ?? 0).toFixed(4)),
       row.display.anxiety.toFixed(4), row.display.fear.toFixed(4),
       row.display.intimacy.toFixed(4), row.display.longing.toFixed(4),
       row.labels.join('|')].join(','));

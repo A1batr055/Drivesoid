@@ -60,7 +60,7 @@ const FATIGUE_C = { peak: 3, amp: 0.8, width: 10 };
 const LABEL_DELTAS = {
   affectionate:       { intimacy: +0.20, contentment: +0.15, anxiety: -0.18, lust: +0.12, longing: -0.10, fear: -0.08 },
   playful:            { play: +0.20, elation: +0.18, contentment: +0.12, seeking: +0.10, irritability: -0.10, lust: +0.10 },
-  vulnerable:         { intimacy: +0.25, protectiveness: +0.20, anxiety: +0.12, dejection: +0.08, contentment: +0.03 },
+  vulnerable:         { intimacy: +0.25, protectiveness: +0.20, anxiety: +0.12, dejection: +0.08 },
   reassuring:         { anxiety: -0.25, jealousy: -0.20, contentment: +0.15, intimacy: +0.15, fear: -0.15 },
   cold:               { anxiety: +0.15, dejection: +0.12, longing: +0.10, intimacy: -0.10 },
   conflict:           { anxiety: +0.20, irritability: +0.15, dejection: +0.15, possessiveness: +0.18, lust: +0.10, intimacy: -0.15, contentment: -0.15 },
@@ -83,10 +83,18 @@ const MSG_STRUCTURAL = {
 const MSG_ANXIETY_COMP = -0.075;
 const MSG_IRRIT_COMP   = -0.060;
 const SOOTHING_LABELS = new Set(['affectionate', 'playful', 'reassuring']);
-const RELIEF_LABELS = new Set(['affectionate', 'playful', 'reassuring', 'neutral']);
-const HIGH_EMOTION_LABELS = new Set(['conflict', 'hostile', 'fear_separation', 'fear_death', 'fear_concern', 'fear_general']);
-const HIGH_EMOTION_WINDOW_MS = 10 * 60_000;
-const HIGH_EMOTION_RELIEF_MULT = 0.35;
+
+// ── Mood layer: three-level anchor chain (base → mood → temperament) ──────────
+// base decays toward mood; mood follows base and slowly returns to the
+// temperament anchor (DIMS neutral). Sleep consolidates mood back faster.
+// Consolidation is arousal-gated: large base-mood deviations (intense episodes)
+// imprint on mood faster than everyday fluctuations.
+const MOOD_FOLLOW_TAU_H       = 12;
+const MOOD_RETURN_TAU_H       = 72;
+const MOOD_SLEEP_RETURN_MULT  = 3;
+const MOOD_CONSOLIDATION_GAIN = 4;    // follow speed multiplier = clamp(GAIN·|dev|, MIN, MAX)
+const MOOD_CONSOLIDATION_MIN  = 0.25;
+const MOOD_CONSOLIDATION_MAX  = 2.5;
 
 const MSG_QUICK_REPLY = { contentment: +0.12, elation: +0.10, anxiety: -0.10 };
 const MSG_HOT_CONV    = { contentment: +0.15, play: +0.12, elation: +0.10, longing: -0.20 };
@@ -132,10 +140,6 @@ function gaussianOffset(peak, amp, width, ts) {
   return CAP * amp * Math.exp(-0.5 * (dist / width) ** 2);
 }
 
-function standardDecay(base, k, elapsed_ms) {
-  const { neutral, tau } = DIMS[k];
-  return neutral + (base - neutral) * Math.exp(-elapsed_ms / (tau * 3_600_000));
-}
 
 function fatigueBase(sleep, now_ts) {
   const target = 7.5;
@@ -238,11 +242,22 @@ function buildDisplay(state, now_ts) {
 }
 
 // ── Decay ─────────────────────────────────────────────────────────────────────
-function decayBaseTo(base, from_ts, to_ts) {
+function decayBaseTo(state, from_ts, to_ts) {
   if (to_ts <= from_ts) return;
-  const elapsed = to_ts - from_ts;
+  const elapsed   = to_ts - from_ts;
+  const returnTau = state.sleep?.status === 'asleep'
+    ? MOOD_RETURN_TAU_H / MOOD_SLEEP_RETURN_MULT
+    : MOOD_RETURN_TAU_H;
+  const ret = Math.exp(-elapsed / (returnTau * 3_600_000));
   for (const k of Object.keys(DIMS)) {
-    base[k] = standardDecay(base[k], k, elapsed);
+    const { neutral, tau } = DIMS[k];
+    const dev    = Math.abs(state.base[k] - state.mood[k]);
+    const gain   = clamp(MOOD_CONSOLIDATION_GAIN * dev, MOOD_CONSOLIDATION_MIN, MOOD_CONSOLIDATION_MAX);
+    const follow = 1 - Math.exp(-elapsed * gain / (MOOD_FOLLOW_TAU_H * 3_600_000));
+    let mood = state.mood[k] + (state.base[k] - state.mood[k]) * follow;
+    mood = neutral + (mood - neutral) * ret;
+    state.mood[k] = clamp(mood, DIM_FLOOR[k] ?? 0, 1);
+    state.base[k] = state.mood[k] + (state.base[k] - state.mood[k]) * Math.exp(-elapsed / (tau * 3_600_000));
   }
 }
 
@@ -472,7 +487,7 @@ async function processEvents(state, now_ts) {
   let cursor    = new Date(state.last_time_accumulated_at).getTime();
 
   if (!pending.length) {
-    decayBaseTo(state.base, cursor, now_ts);
+    decayBaseTo(state, cursor, now_ts);
     decayFrustration(state, cursor, now_ts);
     accumulateTime(state, now_ts);
     return log;
@@ -482,7 +497,7 @@ async function processEvents(state, now_ts) {
     const ev_ts = new Date(ev.timestamp).getTime();
     if (!Number.isFinite(ev_ts)) { state.last_processed_event_id = ev.event_id; continue; }
 
-    decayBaseTo(state.base, cursor, ev_ts);
+    decayBaseTo(state, cursor, ev_ts);
     decayFrustration(state, cursor, ev_ts);
     accumulateTime(state, ev_ts);
     cursor = ev_ts;
@@ -507,13 +522,8 @@ async function processEvents(state, now_ts) {
             log.classifier.push({ label, confidence: +confidence.toFixed(3) });
             const raw    = LABEL_DELTAS[label] || {};
             const scaled = {};
-            const highEmotionUntil  = new Date(state.high_emotion_until || 0).getTime();
-            const highEmotionActive = Number.isFinite(highEmotionUntil) && highEmotionUntil > ev_ts;
             for (const [k, v] of Object.entries(raw)) {
-              const reliefMult = highEmotionActive && RELIEF_LABELS.has(label) && (k === 'anxiety' || k === 'fear') && v < 0
-                ? HIGH_EMOTION_RELIEF_MULT
-                : 1;
-              scaled[k] = clamp(v * confidence * reliefMult, -0.25, 0.25);
+              scaled[k] = clamp(v * confidence, -0.25, 0.25);
             }
             if (scaled.fear != null && label.startsWith('fear_')) {
               const seg     = state.last_segment;
@@ -524,13 +534,8 @@ async function processEvents(state, now_ts) {
             }
             applyDeltas(state.base, scaled);
 
-            if (HIGH_EMOTION_LABELS.has(label)) {
-              state.high_emotion_until = new Date(ev_ts + HIGH_EMOTION_WINDOW_MS).toISOString();
-            }
-
             if (SOOTHING_LABELS.has(label)) {
-              const anxietyComp = highEmotionActive ? MSG_ANXIETY_COMP * HIGH_EMOTION_RELIEF_MULT : MSG_ANXIETY_COMP;
-              applyDeltas(state.base, { anxiety: anxietyComp, irritability: MSG_IRRIT_COMP });
+              applyDeltas(state.base, { anxiety: MSG_ANXIETY_COMP, irritability: MSG_IRRIT_COMP });
             }
 
             if (label === 'intimate_event') {
@@ -664,7 +669,7 @@ async function processEvents(state, now_ts) {
     state.last_processed_event_id = ev.event_id;
   }
 
-  decayBaseTo(state.base, cursor, now_ts);
+  decayBaseTo(state, cursor, now_ts);
   decayFrustration(state, cursor, now_ts);
   accumulateTime(state, now_ts);
   return log;
@@ -684,6 +689,7 @@ function appendHistory(state, now_ts, eventLog) {
                   ? { stakes: state.unanswered_thread.stakes, milestones: state.unanswered_thread.milestones_applied }
                   : null,
     base:    { ...state.base },
+    mood:    { ...state.mood },
     display: { ...state.display },
     frustration:             state.frustration ?? 0,
     pending_count:           (state.lust_intention_pending ?? []).length,
@@ -730,7 +736,7 @@ function createInitialState(now_ts = Date.now()) {
   for (const [k, p] of Object.entries(DIMS)) base[k] = p.neutral;
 
   return {
-    schema_version:           1,
+    schema_version:           2,
     snapshot_at:              iso,
     state_updated_at:         iso,
     last_processed_event_id:  null,
@@ -751,6 +757,7 @@ function createInitialState(now_ts = Date.now()) {
     last_intention_added_at:      null,
     _recent_labels:           [],
     base,
+    mood: { ...base },
   };
 }
 
@@ -758,8 +765,14 @@ function createInitialState(now_ts = Date.now()) {
 let _running = false;
 
 async function advance(state, now_ts) {
+  if (!state.mood) state.mood = {};
   for (const [k, p] of Object.entries(DIMS)) {
     if (!(k in state.base)) state.base[k] = p.neutral;
+    if (!(k in state.mood)) state.mood[k] = p.neutral;
+  }
+  if ((state.schema_version ?? 1) < 2) {
+    state.schema_version = 2;
+    delete state.high_emotion_until;
   }
   if (state.frustration            == null)  state.frustration            = 0;
   if (state.rejection_streak       == null)  state.rejection_streak       = 0;
