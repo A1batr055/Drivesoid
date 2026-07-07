@@ -124,12 +124,16 @@ const SCENARIOS = [
       exchange(E, 6, 'fear_death', .85);
       exchange(E, 15, 'reassuring', .85);
       exchange(E, 20, 'affectionate', .85);
-      E.push(ev(60, 'sleep_start'), ev(540, 'sleep_end'));
+      E.push(ev(60, 'sleep_start'), ev(300, 'sleep_interrupt'));
+      exchange(E, 300, 'fear_general', .7);
+      E.push(ev(315, 'sleep_start'), ev(540, 'sleep_end'));
     },
     checks: [
-      { name: '恐惧建立：fear(10) ≥ 0.30',         fn: r => v(r, 10, 'fear') >= 0.30 },
-      { name: '睡前仍有恐惧：fear(58) ≥ 0.12',     fn: r => v(r, 58, 'fear') >= 0.12 },
-      { name: '晨起留痕：fear(545) ≥ 0.04',        fn: r => v(r, 545, 'fear') >= 0.04 },
+      { name: '恐惧建立：fear(10) ≥ 0.30',         fn: r => v(r, 10, 'fear') >= 0.30, value: r => `fear(10)=${v(r, 10, 'fear').toFixed(4)}` },
+      { name: '睡前仍有恐惧：fear(58) ≥ 0.12',     fn: r => v(r, 58, 'fear') >= 0.12, value: r => `fear(58)=${v(r, 58, 'fear').toFixed(4)}` },
+      { name: '晨起留痕：fear(545) ≥ 0.04',        fn: r => v(r, 545, 'fear') >= 0.04, value: r => `fear(545)=${v(r, 545, 'fear').toFixed(4)}` },
+      // interrupt fatigue = remaining/target × 0.6 + 0.12 bonus ≈ 0.40 after 4h asleep
+      { name: '中断后疲惫抬升：display.fatigue(305) ≥ 0.38', fn: r => at(r, 305).display.fatigue >= 0.38, value: r => `display.fatigue(305)=${at(r, 305).display.fatigue.toFixed(4)}` },
     ],
   },
   {
@@ -176,6 +180,11 @@ const SCENARIOS = [
       for (let day = 0; day < 7; day++) {
         for (const h of [9.5, 13, 19, 22]) exchange(E, day * 1440 + (h - 8) * 60, 'neutral', .7);
       }
+      const calT = 2 * 1440 + (12 - 8) * 60;
+      E.push(
+        ev(calT,      'calendar', { calendar_id: 'sim-cal-1', calendar_type: 'birthday' }),
+        ev(calT + 10, 'calendar', { calendar_id: 'sim-cal-1', calendar_type: 'birthday' }),
+      );
       nightlySleep(E, 8, 168 * 60);
     },
     checks: [
@@ -184,9 +193,32 @@ const SCENARIOS = [
           const NEG = new Set(['anxiety', 'fear', 'dejection', 'irritability']);
           return Object.entries(dims).every(([k, p]) =>
             Math.abs(row.base[k] - p.neutral) <= (NEG.has(k) ? 0.15 : 0.20));
+        }, value: (r, dims) => {
+          const row = at(r, 6.5 * 1440 + 240);
+          const devs = Object.entries(dims).map(([k, p]) => [k, Math.abs(row.base[k] - p.neutral)]);
+          const [k, dev] = devs.sort((a, b) => b[1] - a[1])[0];
+          return `max dev ${k}=${dev.toFixed(4)}`;
         } },
       { name: '末日无漂移（24h 内 max |dev| ≤ 0.2）', fn: (r, dims) => r.filter(x => x.t >= 6 * 1440).every(row =>
-          Object.entries(dims).every(([k, p]) => Math.abs(row.base[k] - p.neutral) <= 0.2)) },
+          Object.entries(dims).every(([k, p]) => Math.abs(row.base[k] - p.neutral) <= 0.2)),
+        value: (r, dims) => {
+          let worst = ['n/a', 0];
+          for (const row of r.filter(x => x.t >= 6 * 1440)) {
+            for (const [k, p] of Object.entries(dims)) {
+              const dev = Math.abs(row.base[k] - p.neutral);
+              if (dev > worst[1]) worst = [k, dev];
+            }
+          }
+          return `max 24h dev ${worst[0]}=${worst[1].toFixed(4)}`;
+        } },
+      { name: 'calendar 去重：第二条 birthday 跳变 ≤ 首条 5%', fn: r => {
+          const calT = 2 * 1440 + (12 - 8) * 60;
+          return Math.abs(inc(r, calT + 10, 'elation')) <= 0.05 * inc(r, calT, 'elation');
+        },
+        value: r => {
+          const calT = 2 * 1440 + (12 - 8) * 60;
+          return `first inc=${inc(r, calT, 'elation').toFixed(4)}, second inc=${inc(r, calT + 10, 'elation').toFixed(4)}`;
+        } },
     ],
   },
   {
@@ -206,6 +238,103 @@ const SCENARIOS = [
       { name: '不清零：anxiety(25) ≥ 50% anxiety(19)',    fn: r => v(r, 25, 'anxiety') >= 0.5 * v(r, 19, 'anxiety') },
     ],
   },
+  {
+    id: 's7-lust-frustration',
+    title: '欲望-挫败链路',
+    t0: localStart(2026, 1, 5, 21),
+    durationMin: 240,
+    plot: ['lust', 'anxiety'],
+    // Rejections only count against a pending advance (worker gates on
+    // lust_intention_pending); the 30% roll is not guaranteed under seeded RNG,
+    // so pre-seed one intention to test the frustration mechanics directly.
+    makeState: (t0) => {
+      const state = worker.createInitialState(t0);
+      state.lust_intention_pending.push({
+        id:         'sim-intention-1',
+        created_at: new Date(t0).toISOString(),
+        expires_at: new Date(t0 + 240 * MIN).toISOString(),
+      });
+      state.last_intention_added_at = new Date(t0).toISOString();
+      return state;
+    },
+    events: (E) => {
+      [0, 6, 12].forEach(t => exchange(E, t, 'intimate_reference', .85));
+      E.push(
+        ev(30,  'lust_rejection_soft'),
+        ev(60,  'lust_rejection_hard'),
+        ev(90,  'lust_rejection_hard'),
+        ev(150, 'sex_end'),
+      );
+    },
+    checks: [
+      { name: 'lust 建立：lust(15) ≥ 0.55', fn: r => v(r, 15, 'lust') >= 0.55, value: r => `lust(15)=${v(r, 15, 'lust').toFixed(4)}` },
+      { name: '拒绝累积：frustration(95) > frustration(65) > frustration(35) > 0', fn: r => at(r, 95).frustration > at(r, 65).frustration && at(r, 65).frustration > at(r, 35).frustration && at(r, 35).frustration > 0,
+        value: r => `f35=${at(r, 35).frustration.toFixed(4)}, f65=${at(r, 65).frustration.toFixed(4)}, f95=${at(r, 95).frustration.toFixed(4)}` },
+      { name: '连击计数：streak(95) === 3', fn: r => at(r, 95).streak === 3, value: r => `streak(95)=${at(r, 95).streak}` },
+      { name: 'sex_end 生效：frustration(155) < 0.5 × frustration(149) 且 streak(155) === 0', fn: r => at(r, 155).frustration < 0.5 * at(r, 149).frustration && at(r, 155).streak === 0,
+        value: r => `f149=${at(r, 149).frustration.toFixed(4)}, f155=${at(r, 155).frustration.toFixed(4)}, streak155=${at(r, 155).streak}` },
+    ],
+  },
+  {
+    id: 's8-unanswered-high-stakes',
+    title: '深情消息被晾着',
+    t0: localStart(2026, 1, 5, 14),
+    durationMin: 300,
+    plot: ['anxiety'],
+    events: (E) => {
+      E.push(userMsg(0, 'vulnerable', .85), assistantReply(1));
+    },
+    checks: [
+      { name: 'stakes 判定生效：anxiety(180) − anxiety(5) ≥ 0.10', fn: r => v(r, 180, 'anxiety') - v(r, 5, 'anxiety') >= 0.10,
+        value: r => `anxiety(5)=${v(r, 5, 'anxiety').toFixed(4)}, anxiety(180)=${v(r, 180, 'anxiety').toFixed(4)}, diff=${(v(r, 180, 'anxiety') - v(r, 5, 'anxiety')).toFixed(4)}` },
+      { name: '单调不清零：anxiety(240) ≥ anxiety(120) − 0.03', fn: r => v(r, 240, 'anxiety') >= v(r, 120, 'anxiety') - 0.03,
+        value: r => `anxiety(120)=${v(r, 120, 'anxiety').toFixed(4)}, anxiety(240)=${v(r, 240, 'anxiety').toFixed(4)}` },
+      // label + high-stakes milestones (cap 0.28) + time accumulation (cap 0.18) legitimately stack
+      { name: '有界：max anxiety ≤ 0.65', fn: r => Math.max(...r.map(x => x.base.anxiety)) <= 0.65,
+        value: r => `max anxiety=${Math.max(...r.map(x => x.base.anxiety)).toFixed(4)}` },
+    ],
+  },
+  {
+    id: 's9-unknown-context-no-inject',
+    title: '无语境不注入',
+    t0: localStart(2026, 1, 5, 16),
+    durationMin: 30,
+    plot: ['contentment', 'anxiety'],
+    events: (E) => {
+      E.push(ev(5, 'msg_quick_reply'), ev(10, 'msg_hot_conv'));
+    },
+    checks: [
+      { name: 'quick_reply 零注入：|contentment/anxiety inc| ≤ 0.005', fn: r => Math.abs(inc(r, 5, 'contentment')) <= 0.005 && Math.abs(inc(r, 5, 'anxiety')) <= 0.005,
+        value: r => `contentment inc=${inc(r, 5, 'contentment').toFixed(4)}, anxiety inc=${inc(r, 5, 'anxiety').toFixed(4)}` },
+      { name: 'hot_conv 零注入：|contentment/longing inc| ≤ 0.005', fn: r => Math.abs(inc(r, 10, 'contentment')) <= 0.005 && Math.abs(inc(r, 10, 'longing')) <= 0.005,
+        value: r => `contentment inc=${inc(r, 10, 'contentment').toFixed(4)}, longing inc=${inc(r, 10, 'longing').toFixed(4)}` },
+    ],
+  },
+  {
+    id: 's10-v1-migration',
+    title: '旧状态自动迁移',
+    t0: localStart(2026, 1, 5, 16),
+    durationMin: 10,
+    plot: ['anxiety'],
+    makeState: (t0) => {
+      const state = worker.createInitialState(t0);
+      delete state.mood;
+      delete state.schema_version;
+      state.high_emotion_until = new Date(t0).toISOString();
+      state._recent_labels = ['conflict', 'hostile', 'cold'];
+      state.base.anxiety = 0.4;
+      return state;
+    },
+    events: () => {},
+    checks: [
+      { name: 'schema 升到 2', fn: r => r[0].schema === 2, value: r => `schema=${r[0].schema}` },
+      { name: 'mood 回填为 neutral：mood.anxiety ≈ 0.20', fn: r => Math.abs(r[0].mood.anxiety - 0.20) <= 0.01,
+        value: r => `mood.anxiety=${r[0].mood.anxiety.toFixed(4)}` },
+      { name: '旧字符串标签被丢弃：recent === 0', fn: r => r[0].recent === 0, value: r => `recent=${r[0].recent}` },
+      { name: 'high_emotion_until 被删：heu === false', fn: r => r[0].heu === false, value: r => `heu=${r[0].heu}` },
+      { name: 'base 保留：base.anxiety ≥ 0.35', fn: r => r[0].base.anxiety >= 0.35, value: r => `base.anxiety=${r[0].base.anxiety.toFixed(4)}` },
+    ],
+  },
 ];
 
 // ── Row access helpers ────────────────────────────────────────────────────────
@@ -217,7 +346,7 @@ function at(rows, t_min) {
 function v(rows, t_min, dim) { return at(rows, t_min).base[dim]; }
 // Base increment across the tick that ingests the message sent at t_min.
 function inc(rows, t_min, dim) {
-  const idx = rows.findIndex(row => row.t > t_min);
+  const idx = rows.findIndex(row => row.t >= t_min);
   if (idx < 1) return 0;
   return rows[idx].base[dim] - rows[idx - 1].base[dim];
 }
@@ -243,7 +372,7 @@ async function runScenario(sc) {
   sc.events(events);
   events.sort((a, b) => a.at - b.at);
 
-  const state = worker.createInitialState(sc.t0);
+  const state = sc.makeState ? sc.makeState(sc.t0) : worker.createInitialState(sc.t0);
   const dims  = {};
   for (const k of Object.keys(state.base)) dims[k] = { neutral: state.base[k] };
 
@@ -272,6 +401,12 @@ async function runScenario(sc) {
       display: { ...state.display },
       labels:  log.classifier.map(c => c.label ?? 'error'),
       sleep:   state.sleep?.status,
+      frustration: state.frustration,
+      streak: state.rejection_streak,
+      pending: (state.lust_intention_pending ?? []).length,
+      schema: state.schema_version,
+      recent: (state._recent_labels ?? []).length,
+      heu: 'high_emotion_until' in state,
     });
   }
 
@@ -290,13 +425,19 @@ async function runScenario(sc) {
   }
   fs.writeFileSync(path.join(OUT_DIR, `${sc.id}.csv`), csv.join('\n') + '\n');
 
-  const results = sc.checks.map(c => ({ name: c.name, ok: !!c.fn(rows, dims) }));
+  const results = sc.checks.map(c => ({
+    name: c.name,
+    ok: !!c.fn(rows, dims),
+    value: c.value ? c.value(rows, dims) : null,
+  }));
 
   console.log(`\n━━ ${sc.id} · ${sc.title} ━━ (${rows.length} ticks / ${(sc.durationMin / 60).toFixed(1)}h)`);
   for (const dim of sc.plot) {
     console.log(`  ${dim.padEnd(12)} ${sparkline(rows.map(r => r.base[dim]))}`);
   }
-  for (const res of results) console.log(`  ${res.ok ? 'PASS' : 'FAIL'}  ${res.name}`);
+  for (const res of results) {
+    console.log(`  ${res.ok ? 'PASS' : 'FAIL'}  ${res.name}${!res.ok && res.value ? ` — ${res.value}` : ''}`);
+  }
   return { id: sc.id, title: sc.title, results };
 }
 
