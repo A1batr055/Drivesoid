@@ -24,15 +24,15 @@ const DIMS = {
   possessiveness: { neutral: 0.30, tau: 4,  peak: 21, amp: 0.6, width: 5   },
   lust:           { neutral: 0.30, tau: 4,  peak: 23, amp: 0.8, width: 6   },
   jealousy:       { neutral: 0.22, tau: 2,  peak: 0,  amp: 0,   width: 1   },
-  anxiety:        { neutral: 0.20, tau: 2,  peak: 0,  amp: 0,   width: 1   },
+  anxiety:        { neutral: 0.20, tau: 5,  peak: 0,  amp: 0,   width: 1   },
   protectiveness: { neutral: 0.25, tau: 4,  peak: 0,  amp: 0,   width: 1   },
-  contentment:    { neutral: 0.35, tau: 12, peak: 14, amp: 0.5, width: 9   },
+  contentment:    { neutral: 0.35, tau: 8,  peak: 14, amp: 0.5, width: 9   },
   elation:        { neutral: 0.20, tau: 3,  peak: 19, amp: 0.7, width: 3.5 },
   seeking:        { neutral: 0.25, tau: 4,  peak: 14, amp: 0.8, width: 5   },
   play:           { neutral: 0.25, tau: 3,  peak: 19, amp: 0.7, width: 3.5 },
   dejection:      { neutral: 0.15, tau: 8,  peak: 8,  amp: 0.5, width: 4   },
   irritability:   { neutral: 0.15, tau: 3,  peak: 16, amp: 0.6, width: 3.5 },
-  fear:           { neutral: 0,    tau: 1,  peak: 0,  amp: 0,   width: 1   },
+  fear:           { neutral: 0,    tau: 7,  peak: 0,  amp: 0,   width: 1   },
 };
 
 const DIM_FLOOR = {
@@ -68,7 +68,7 @@ const LABEL_DELTAS = {
   struggling:         { protectiveness: +0.30, anxiety: +0.12, dejection: +0.12, contentment: -0.08 },
   intimate_reference: { lust: +0.18, intimacy: +0.10 },
   intimate_event:     { lust: +0.25, intimacy: +0.18 },
-  neutral:            { anxiety: -0.05, longing: -0.04, contentment: +0.04 },
+  neutral:            { anxiety: -0.05, longing: -0.04, contentment: +0.03 },
   hostile:            { dejection: +0.22, anxiety: +0.18, irritability: +0.12, intimacy: -0.22, contentment: -0.18 },
   fear_separation:    { fear: +0.20, longing: +0.15, possessiveness: +0.12, anxiety: +0.15, protectiveness: +0.10, dejection: +0.10, irritability: +0.08 },
   fear_death:         { fear: +0.35, anxiety: +0.30, irritability: +0.20, contentment: -0.12, play: -0.15, elation: -0.10 },
@@ -80,7 +80,7 @@ const LABEL_DELTAS = {
 // resolves absence and always applies; soothing is withheld in negative
 // contexts — an argument message is contact, not comfort.
 const MSG_CONTACT = { longing: -0.06, seeking: -0.04 };
-const MSG_SOOTHE  = { dejection: -0.08, contentment: +0.08, anxiety: -0.025, irritability: -0.020 };
+const MSG_SOOTHE  = { dejection: -0.08, contentment: +0.03, anxiety: -0.025, irritability: -0.020 };
 const MSG_ANXIETY_COMP = -0.075;
 const MSG_IRRIT_COMP   = -0.060;
 const SOOTHING_LABELS = new Set(['affectionate', 'playful', 'reassuring']);
@@ -132,10 +132,10 @@ const DEJECTION_THRESHOLD_H = 6;
 
 // ── Unanswered milestones ─────────────────────────────────────────────────────
 const UNANSWERED = {
-  normal: { '1h': { anxiety: +0.06, irritability: +0.04 }, '2h': { anxiety: +0.05 } },
+  normal: { '1h': { anxiety: +0.04, irritability: +0.03 }, '2h': { anxiety: +0.03 } },
   high:   { '30m': { anxiety: +0.12, irritability: +0.08 }, '1h': { anxiety: +0.10 }, '2h': { anxiety: +0.08 } },
 };
-const ANXIETY_UNANSWERED_CAP = { normal: 0.15, high: 0.28 };
+const ANXIETY_UNANSWERED_CAP = { normal: 0.10, high: 0.28 };
 const MILESTONE_MINUTES = { '30m': 30, '1h': 60, '2h': 120 };
 
 // ── Calendar deltas ───────────────────────────────────────────────────────────
@@ -199,6 +199,22 @@ function noise(sigma = 0.02) {
 
 const NEG_DIMS = new Set(['dejection', 'irritability', 'anxiety', 'fear']);
 
+// AR(1) display noise: temporally correlated wander instead of independent
+// per-tick jitter (real affect drifts, it does not flicker). Coefficients keep
+// the stationary variance of the previous white noise.
+const NOISE_AR_COEF = 0.8;
+function stepNoise(state, now_ts) {
+  if (state._noise_ts === now_ts && state._noise) return;
+  const prev = state._noise || {};
+  const next = {};
+  for (const k of [...Object.keys(DIMS), 'fatigue']) {
+    const sigma = k === 'fatigue' ? 0.02 : (NEG_DIMS.has(k) ? 0.01 : 0.02);
+    next[k] = (prev[k] ?? 0) * NOISE_AR_COEF + noise(sigma * 0.6);
+  }
+  state._noise    = next;
+  state._noise_ts = now_ts;
+}
+
 // State-dependent impact, midpoint-normalized: increases scale with headroom,
 // decreases with the current level (nothing to soothe when already calm).
 // At x = 0.5 the effective delta equals the nominal delta, so existing tables
@@ -220,16 +236,17 @@ function applyDeltas(state, deltas) {
 // ── Display pipeline ──────────────────────────────────────────────────────────
 function buildDisplay(state, now_ts) {
   const b = state.base;
+  stepNoise(state, now_ts);
 
   const d = {};
   for (const k of Object.keys(DIMS)) {
     const p = DIMS[k];
-    d[k] = clamp(b[k] + gaussianOffset(p.peak, p.amp, p.width, now_ts) + noise(NEG_DIMS.has(k) ? 0.01 : 0.02));
+    d[k] = clamp(b[k] + gaussianOffset(p.peak, p.amp, p.width, now_ts) + state._noise[k]);
   }
   d.fatigue = clamp(
     fatigueBase(state.sleep, now_ts) +
     gaussianOffset(FATIGUE_C.peak, FATIGUE_C.amp, FATIGUE_C.width, now_ts) +
-    noise()
+    state._noise.fatigue
   );
 
   const v0 = d.vitality, f0 = d.fatigue;
@@ -448,7 +465,7 @@ function maybeFireWhim(state, now_ts) {
 
   const d      = buildDisplay(state, now_ts);
   const POS_W  = ['vitality','seeking','play','elation','contentment'];
-  const NEG_W  = ['dejection','irritability','anxiety'];
+  const NEG_W  = ['dejection','irritability','anxiety','fear'];
   const pos_max = Math.max(...POS_W.map(k => Math.max(0, d[k] - 0.6)));
   const neg_max = Math.max(...NEG_W.map(k => Math.max(0, d[k] - 0.5)));
 

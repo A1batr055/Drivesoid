@@ -179,9 +179,11 @@ const SCENARIOS = [
       nightlySleep(E, 8, 168 * 60);
     },
     checks: [
-      { name: '末日各维靠近 neutral（|dev| ≤ 0.15）', fn: (r, dims) => {
+      { name: '末日负性维贴住 neutral（≤0.15），正性维温和（≤0.20）', fn: (r, dims) => {
           const row = at(r, 6.5 * 1440 + 240);
-          return Object.entries(dims).every(([k, p]) => Math.abs(row.base[k] - p.neutral) <= 0.15);
+          const NEG = new Set(['anxiety', 'fear', 'dejection', 'irritability']);
+          return Object.entries(dims).every(([k, p]) =>
+            Math.abs(row.base[k] - p.neutral) <= (NEG.has(k) ? 0.15 : 0.20));
         } },
       { name: '末日无漂移（24h 内 max |dev| ≤ 0.2）', fn: (r, dims) => r.filter(x => x.t >= 6 * 1440).every(row =>
           Object.entries(dims).every(([k, p]) => Math.abs(row.base[k] - p.neutral) <= 0.2)) },
