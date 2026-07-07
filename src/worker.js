@@ -76,13 +76,37 @@ const LABEL_DELTAS = {
   fear_general:       { fear: +0.20, anxiety: +0.10 },
 };
 
-const MSG_STRUCTURAL = {
-  longing: -0.06, seeking: -0.04, dejection: -0.08, contentment: +0.08,
-  anxiety: -0.025, irritability: -0.020,
-};
+// Structural effect of an incoming user message, split by meaning: contact
+// resolves absence and always applies; soothing is withheld in negative
+// contexts — an argument message is contact, not comfort.
+const MSG_CONTACT = { longing: -0.06, seeking: -0.04 };
+const MSG_SOOTHE  = { dejection: -0.08, contentment: +0.08, anxiety: -0.025, irritability: -0.020 };
 const MSG_ANXIETY_COMP = -0.075;
 const MSG_IRRIT_COMP   = -0.060;
 const SOOTHING_LABELS = new Set(['affectionate', 'playful', 'reassuring']);
+
+// ── Context valence & habituation ─────────────────────────────────────────────
+// Timing signals (quick replies, hot conversations) carry arousal, not valence;
+// their emotional direction is borrowed from recent classified context.
+// Repeating the same label within the window habituates: nth repeat ×0.7ⁿ.
+const RECENT_LABEL_WINDOW_MS = 15 * 60_000;
+const RECENT_LABEL_KEEP      = 8;
+const HABITUATION_FACTOR     = 0.7;
+const NEG_CTX_LABELS = new Set(['cold', 'conflict', 'distant', 'hostile', 'struggling',
+                                'fear_separation', 'fear_death', 'fear_concern', 'fear_general']);
+
+function recentLabels(state, now_ts) {
+  return (state._recent_labels || [])
+    .map(e => (typeof e === 'string' ? { label: e, ts: null } : e))
+    .filter(e => !e.ts || now_ts - new Date(e.ts).getTime() < RECENT_LABEL_WINDOW_MS);
+}
+
+function contextValence(state, now_ts) {
+  const recent = recentLabels(state, now_ts);
+  if (!recent.length) return 'unknown';
+  const neg = recent.filter(e => NEG_CTX_LABELS.has(e.label)).length;
+  return neg * 2 >= recent.length ? 'negative' : 'positive';
+}
 
 // ── Mood layer: three-level anchor chain (base → mood → temperament) ──────────
 // base decays toward mood; mood follows base and slowly returns to the
@@ -96,8 +120,10 @@ const MOOD_CONSOLIDATION_GAIN = 4;    // follow speed multiplier = clamp(GAIN·|
 const MOOD_CONSOLIDATION_MIN  = 0.25;
 const MOOD_CONSOLIDATION_MAX  = 2.5;
 
-const MSG_QUICK_REPLY = { contentment: +0.12, elation: +0.10, anxiety: -0.10 };
-const MSG_HOT_CONV    = { contentment: +0.15, play: +0.12, elation: +0.10, longing: -0.20 };
+const MSG_QUICK_REPLY     = { contentment: +0.12, elation: +0.10, anxiety: -0.10 };
+const MSG_HOT_CONV        = { contentment: +0.15, play: +0.12, elation: +0.10, longing: -0.20 };
+const MSG_QUICK_REPLY_NEG = { anxiety: +0.05, irritability: +0.05 };
+const MSG_HOT_CONV_NEG    = { anxiety: +0.06, irritability: +0.06 };
 
 // ── Time accumulation ─────────────────────────────────────────────────────────
 const TIME_PER_HOUR = { longing: 0.04, anxiety: 0.02, seeking: 0.02 };
@@ -173,9 +199,21 @@ function noise(sigma = 0.02) {
 
 const NEG_DIMS = new Set(['dejection', 'irritability', 'anxiety', 'fear']);
 
-function applyDeltas(base, deltas) {
+// State-dependent impact, midpoint-normalized: increases scale with headroom,
+// decreases with the current level (nothing to soothe when already calm).
+// At x = 0.5 the effective delta equals the nominal delta, so existing tables
+// keep their tuned feel in the normal range.
+// Acute relief of negative dims is floored at mood: soothing calms the moment,
+// not the underlying mood; only time and mood recovery reach below it.
+function applyDeltas(state, deltas) {
+  const { base, mood } = state;
   for (const [k, d] of Object.entries(deltas)) {
-    if (k in base) base[k] = clamp(Math.max(base[k] + d, DIM_FLOOR[k] ?? 0));
+    if (!(k in base)) continue;
+    const x   = base[k];
+    const eff = d > 0 ? d * 2 * (1 - x) : d * 2 * x;
+    let next  = Math.max(x + eff, DIM_FLOOR[k] ?? 0);
+    if (d < 0 && NEG_DIMS.has(k)) next = Math.max(next, Math.min(x, mood?.[k] ?? 0));
+    base[k] = clamp(next);
   }
 }
 
@@ -348,7 +386,7 @@ function checkUnansweredMilestones(state, now_ts) {
       deltas.anxiety = Math.min(deltas.anxiety, Math.max(0, cap - anxiety_applied));
       anxiety_applied += deltas.anxiety;
     }
-    applyDeltas(state.base, deltas);
+    applyDeltas(state, deltas);
     ut.milestones_applied.push(label);
   }
 }
@@ -505,9 +543,11 @@ async function processEvents(state, now_ts) {
 
     switch (ev.type) {
       case 'msg_user': {
+        const valence = contextValence(state, ev_ts);
         state.last_interaction_at = ev.timestamp;
         state.unanswered_thread   = null;
-        applyDeltas(state.base, MSG_STRUCTURAL);
+        applyDeltas(state, MSG_CONTACT);
+        if (valence !== 'negative') applyDeltas(state, MSG_SOOTHE);
 
         if (!state.last_segment || state.last_segment.status === 'summarized') {
           state.last_segment = { id: crypto.randomUUID(), started_at: ev.timestamp, last_message_at: ev.timestamp, status: 'open', messages: 1, fear_label_applied: 0 };
@@ -522,8 +562,10 @@ async function processEvents(state, now_ts) {
             log.classifier.push({ label, confidence: +confidence.toFixed(3) });
             const raw    = LABEL_DELTAS[label] || {};
             const scaled = {};
+            const priorSame   = recentLabels(state, ev_ts).filter(e => e.label === label).length;
+            const habituation = Math.pow(HABITUATION_FACTOR, priorSame);
             for (const [k, v] of Object.entries(raw)) {
-              scaled[k] = clamp(v * confidence, -0.25, 0.25);
+              scaled[k] = clamp(v * confidence * habituation, -0.25, 0.25);
             }
             if (scaled.fear != null && label.startsWith('fear_')) {
               const seg     = state.last_segment;
@@ -532,10 +574,10 @@ async function processEvents(state, now_ts) {
               seg.fear_label_applied = already + allowed;
               scaled.fear = allowed;
             }
-            applyDeltas(state.base, scaled);
+            applyDeltas(state, scaled);
 
             if (SOOTHING_LABELS.has(label)) {
-              applyDeltas(state.base, { anxiety: MSG_ANXIETY_COMP, irritability: MSG_IRRIT_COMP });
+              applyDeltas(state, { anxiety: MSG_ANXIETY_COMP * habituation, irritability: MSG_IRRIT_COMP * habituation });
             }
 
             if (label === 'intimate_event') {
@@ -544,7 +586,7 @@ async function processEvents(state, now_ts) {
             }
 
             if (!state._recent_labels) state._recent_labels = [];
-            state._recent_labels = [label, ...state._recent_labels].slice(0, 3);
+            state._recent_labels = [{ label, ts: ev.timestamp }, ...state._recent_labels].slice(0, RECENT_LABEL_KEEP);
           } catch (e) {
             log.classifier.push({ error: e.message });
           }
@@ -554,8 +596,7 @@ async function processEvents(state, now_ts) {
 
       case 'msg_assistant': {
         const high_stakes_labels = new Set(['affectionate','vulnerable','intimate_reference','intimate_event']);
-        const recent = state._recent_labels || [];
-        const stakes = recent.some(l => high_stakes_labels.has(l)) ? 'high' : 'normal';
+        const stakes = recentLabels(state, ev_ts).some(e => high_stakes_labels.has(e.label)) ? 'high' : 'normal';
         state.unanswered_thread = {
           message_id:         ev.payload?.message_id,
           sent_at:            ev.timestamp,
@@ -571,20 +612,26 @@ async function processEvents(state, now_ts) {
         break;
       }
 
-      case 'msg_quick_reply':
-        applyDeltas(state.base, MSG_QUICK_REPLY);
+      case 'msg_quick_reply': {
+        const valence = contextValence(state, ev_ts);
+        if (valence === 'positive') applyDeltas(state, MSG_QUICK_REPLY);
+        else if (valence === 'negative') applyDeltas(state, MSG_QUICK_REPLY_NEG);
         break;
+      }
 
-      case 'msg_hot_conv':
-        applyDeltas(state.base, MSG_HOT_CONV);
+      case 'msg_hot_conv': {
+        const valence = contextValence(state, ev_ts);
+        if (valence === 'positive') applyDeltas(state, MSG_HOT_CONV);
+        else if (valence === 'negative') applyDeltas(state, MSG_HOT_CONV_NEG);
         break;
+      }
 
       case 'calendar': {
         const { calendar_id, calendar_type } = ev.payload || {};
         if (calendar_id && !(state.processed_calendar_ids || []).includes(calendar_id)) {
           const deltas = CALENDAR_DELTAS[calendar_type];
           if (deltas) {
-            applyDeltas(state.base, deltas);
+            applyDeltas(state, deltas);
             if (calendar_type === 'intimacy') state.last_intimacy_at = ev.timestamp;
             if (!state.processed_calendar_ids) state.processed_calendar_ids = [];
             state.processed_calendar_ids.push(calendar_id);
@@ -659,7 +706,7 @@ async function processEvents(state, now_ts) {
         state.sleep.status              = 'interrupted';
         state.sleep.last_interrupted_at = ev.timestamp;
         state.sleep.interrupt_fatigue_bonus = 0.12;
-        applyDeltas(state.base, { irritability: 0.12, vitality: -0.10 });
+        applyDeltas(state, { irritability: 0.12, vitality: -0.10 });
         state.unanswered_thread         = null;
         delete state.active_whim;
         break;

@@ -110,7 +110,7 @@ const SCENARIOS = [
       { name: '冲突期 anxiety 上升 ≥ 0.25',        fn: r => v(r, 20, 'anxiety') - v(r, 0, 'anxiety') >= 0.25 },
       { name: '冲突期逐段上升（2→10→20min）',       fn: r => v(r, 20, 'anxiety') >= v(r, 10, 'anxiety') - 0.02 && v(r, 10, 'anxiety') >= v(r, 2, 'anxiety') - 0.02 },
       { name: '和好起效：anxiety(55) < anxiety(20)', fn: r => v(r, 55, 'anxiety') < v(r, 20, 'anxiety') - 0.03 },
-      { name: '冲突残余：anxiety(120) ≥ 0.25',       fn: r => v(r, 120, 'anxiety') >= 0.25 },
+      { name: '冲突残余：base(120) ≥ 0.22 且 mood(120) ≥ 0.23', fn: r => v(r, 120, 'anxiety') >= 0.22 && at(r, 120).mood.anxiety >= 0.23 },
     ],
   },
   {
@@ -139,11 +139,11 @@ const SCENARIOS = [
     durationMin: 40,
     plot: ['intimacy', 'contentment'],
     events: (E) => {
-      for (let i = 0; i < 8; i++) exchange(E, i * 3, 'affectionate', .9, { quick: i > 0 });
+      for (let i = 0; i < 8; i++) exchange(E, 3 + i * 3, 'affectionate', .9, { quick: i > 0 });
     },
     checks: [
-      { name: '增幅递减：第2条 ≤ 75% 第1条',  fn: r => inc(r, 3, 'intimacy') <= 0.75 * inc(r, 0, 'intimacy') },
-      { name: '增幅递减：第3条 ≤ 60% 第1条',  fn: r => inc(r, 6, 'intimacy') <= 0.60 * inc(r, 0, 'intimacy') },
+      { name: '增幅递减：第2条 ≤ 75% 第1条',  fn: r => inc(r, 6, 'intimacy') <= 0.75 * inc(r, 3, 'intimacy') },
+      { name: '增幅递减：第3条 ≤ 60% 第1条',  fn: r => inc(r, 9, 'intimacy') <= 0.60 * inc(r, 3, 'intimacy') },
       { name: '不顶满：max intimacy < 0.97',   fn: r => Math.max(...r.map(x => x.base.intimacy)) < 0.97 },
     ],
   },
