@@ -117,4 +117,8 @@ npm start
 
 ## License
 
-MIT
+**CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0), from version 2.1.0 onward.
+
+This is a community, non-profit project. You may use, modify, and redistribute it for **non-commercial** purposes, as long as you **credit the original author** and license any derivative work under these **same terms** (attribution required, no closed-source, no relicensing). **Commercial use is not permitted** — contact the copyright holder for a separate commercial license.
+
+Versions up to and including `2.0.0` were released under the MIT License and remain available under those terms. See [`LICENSE`](LICENSE) for full text.

@@ -702,6 +702,7 @@ setInterval(loadStatus, 15000);
     const f = k => (d[k] ?? 0).toFixed(2);
     const lines = [
       '[drives]',
+      '(your own state as the AI — not the user\'s)',
       `vitality ${f('vitality')}  fatigue ${f('fatigue')}`,
       `longing ${f('longing')}  intimacy ${f('intimacy')}  possessiveness ${f('possessiveness')}  lust ${f('lust')}`,
       `jealousy ${f('jealousy')}  anxiety ${f('anxiety')}  protectiveness ${f('protectiveness')}  fear ${f('fear')}`,
