@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC-BY-NC-SA-4.0
+// Copyright (c) 2026 A1batr055 - https://github.com/A1batr055/Drivesoid
 'use strict';
 const fs   = require('fs');
 const path = require('path');

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC-BY-NC-SA-4.0
+// Copyright (c) 2026 A1batr055 - https://github.com/A1batr055/Drivesoid
 'use strict';
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');

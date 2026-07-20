@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: CC-BY-NC-SA-4.0
+// Copyright (c) 2026 A1batr055 - https://github.com/A1batr055/Drivesoid
 'use strict';
 // Offline simulation harness: replays synthetic event scripts through the real
 // worker pipeline (virtual clock, mocked classifier, seeded RNG) and checks

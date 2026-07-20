@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: CC-BY-NC-SA-4.0
+# Copyright (c) 2026 A1batr055 - https://github.com/A1batr055/Drivesoid
 # Drivesoid — Claude Code UserPromptSubmit hook
 # Place at .claude/hooks/UserPromptSubmit.sh in your workspace.
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: CC-BY-NC-SA-4.0
+# Copyright (c) 2026 A1batr055 - https://github.com/A1batr055/Drivesoid
 """Drivesoid health report — reads drives-history.jsonl and prints a summary."""
 
 import json, sys, math, os
